@@ -242,7 +242,7 @@ def compact(tab, enums):
     return "\n".join(['Inst\t' + ','.join(fields)] + sorted(s))
 
 
-construct = False
+construct = True
 if construct:
     import re
     import requests    
@@ -263,3 +263,6 @@ else:
             fields = ctrl.split(',')
         else:
             control[instr.lower()] = IControl(fields, ctrl, renum)
+
+
+    
