@@ -94,7 +94,19 @@ class ALU:
         return op1 - op2
 
     def _srl(op1, op2):
-        if op1 < 0: return -((-op1) >> op2)
+        if op2 == 0: return op1 # not changing underlying
+			       # value (result from op1)
+        if op1 >= 0: return op1 >> op2 # if op1 pos, same as sra
+        if op1 < 0: return int(hex(-op1), 16) >> op2
+			   # if op1 neg, calculate -op1 (pos int) 
+			   # sra op2 so sign-extending neg num 
+			   # is not done by sra (due to not being done
+			   # definitionally by srl). then, finally, return
+			   # the shifted pos op1 by op2 result back into
+			   # b/c op1, if shifted by op2>0, should be 
+			   # positive (0s assumed to "shift in" on left
+			   # due to no sign-extending in srl)
+			   # by sra 
         else: return op1 >> op2
 	
     def _sll(op1, op2):
@@ -135,20 +147,27 @@ if __name__ == "__main__":
 
     print("Test 2: testing srl")
 
-    alu_fun = 9
+    # testbench helper returns string
+    # representing result of ALU executor
+    def _print_srl_exec(op1, 
+                        op2,
+                        exp_val, 
+                        alu_fun=9 # for srl
+    ):
+        print(str(op1) + " srl " + str(op2))
+        print("Expected: " + str(exp_val))
+        print("Actual: " + str(ALU.alu(op1, op2, alu_fun)))
+        print()
 
-    op1 = -1
-    op2 = 1
-    
-    print("-1 srl 1")
-    print("Expected: 0")
-    print("Actual: " + str(ALU.alu(op1, op2, alu_fun)))
-    
-    print()
+    # short form of _print_srl_exec()
+    _psrl = _print_srl_exec
+   
+    _psrl(-4, 0, -4)
+    _psrl(-4, 1, 2)
+    _psrl(-4, 2, 1)
+    _psrl(-4, 3, 0)
 
-    op1 = -64
-    op2 = 3
-
-    print("-64 srl 3")
-    print("Expected: -8")
-    print("Actual: " + str(ALU.alu(op1, op2, alu_fun)))
+    _psrl(4, 0, 4)
+    _psrl(4, 1, 2)
+    _psrl(4, 2, 1)
+    _psrl(4, 3, 0)
