@@ -33,9 +33,31 @@ class Instruction():
                 self.pc = pc # pc relative instrs need pc to compute targets for display
                 self.symbols = symbols
 
-                self._reset_instr_components()
+                self._opcode = None
+                self._funct3 = None
+                self._funct7 = None
+                self._mnemonic = None
+                
+                self._rd = None
+                self._rs1 = None
+                self._rs2 = None
+                self._imm = None
+
+                self._type = None
 
                 self.decode_and_set_instr_components()
+
+        get_val = lambda self: self.val
+
+        get_opcode = lambda self: self._opcode
+        get_funct3 = lambda self: self._funct3
+        get_funct7 = lambda self: self._funct7
+        get_mnemonic = lambda self: self._mnemonic
+        
+        get_rd = lambda self: self._rd
+        get_rs1 = lambda self: self._rs1
+        get_rs2 = lambda self: self._rs2
+        get_imm = lambda self: self._imm
         
         def decode_and_set_instr_components(self):
                 self._decode_and_set_mnemonic()
@@ -64,7 +86,7 @@ class Instruction():
                 instr_candidate_names = [item_name for item_name, item in instrOpcode.__members__.items()]
 
                 for opcode_item_name, opcode_item in instrOpcode.__members__.items():
-                        if opcode_item.value != self._opcode_bits:
+                        if opcode_item.value != self._opcode:
                                 instr_candidate_names.remove(
                                         opcode_item_name
                                 )
@@ -121,8 +143,8 @@ class Instruction():
                         self._decode_r_instr_and_set_bits()
 
         def _decode_and_set_opcode(self):
-                self._opcode_bits = self.val & 0x7f # set lower 7 bits
-                                                    # to opcode instruction attribute
+                self._opcode = self.val & 0x7f # set lower 7 bits
+                                               # to opcode instruction attribute
 
         def _decode_and_set_rd(self):
                 self._rd = (self.val >> 7) & 0x1f
@@ -171,12 +193,12 @@ class Instruction():
                                                                  "R or I type at this time.")
 
         def _reset_instr_components(self):
-                self._opcode_bits = None
-                self._funct3_bits = None
-                self._funct7_bits = None
-                self._mneumonic = None
+                self._opcode = None
+                self._funct3 = None
+                self._funct7 = None
+                self._mnemonic = None
                 
-                self._rsd = None
+                self._rd = None
                 self._rs1 = None
                 self._rs2 = None
                 self._imm = None
@@ -185,11 +207,8 @@ class Instruction():
 
         def _reset_funct3(self):
                 self._funct3 = None
-                self._funct3_enum = None
 
         def _reset_funct7(self):
                 self._funct7 = None
-                self._funct7_enum = None
-
                 
  

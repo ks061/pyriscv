@@ -3,14 +3,16 @@ import itertools
 from pydigital.memory import readmemh
 from pydigital.register import Register
 from riscv_isa import Instruction
+import sys
  
 # the PC register
 PC = Register()
  
 # construct a memory segment for instruction memory
 # load the contents from the 32-bit fetch_test hex file (big endian)
-imem = readmemh('riscv_isa/programs/fetch_test.hex',
-   word_size = 4, byteorder = 'big')
+if len(sys.argv) >= 2: mem_filename = str(sys_argv)[1]
+else: mem_filename = 'riscv_isa/programs/fetch_test.hex'
+imem = readmemh(mem_filename, word_size = 4, byteorder = 'big')
  
 def display():
    if pc_val == None:

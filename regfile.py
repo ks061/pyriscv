@@ -52,8 +52,10 @@ class RegFile:
 		RegFile._rs2 = RegFile.reg_vals[rs2_index]
 
 	def clock(wa, wd, en):
-		if en is True and wa != 0:
-			RegFile.reg_vals[wa] = wd
+            print(f"wa = {wa}")
+            print(f"wd = {wd}     en = {en}")
+            if en is True and wa != 0:
+                RegFile.reg_vals[wa] = wd
 	
 	def display():
 		out_str = ""
