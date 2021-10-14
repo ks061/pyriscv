@@ -112,7 +112,7 @@ class ControlSignals:
                     rows[i][j] = -1
                 else: 
                     try:
-                        rows[i][j] = int(rows[i][j])
+                        rows[i][j] = int(rows[i][j],base=16)
                     except ValueError: pass
 if __name__ == "__main__":
     ControlSignals.load()

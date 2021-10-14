@@ -17,7 +17,8 @@ of that multiplexer.
 		 into the multiplexer
 """
 def make_mux(*args):
-   return lambda i: (args)[i]() # i is the selection bit
+   return lambda i: (args)[i]() if (i>=0 and i<len(args)) else None
+                                          # i is the selection bit
 	    				  # of the multiplexer
 
 if __name__=="__main__": 
