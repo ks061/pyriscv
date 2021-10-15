@@ -55,7 +55,6 @@ for t in itertools.count():
   
    # access instruction memory
    instr = Instruction(imem[pc_val], pc_val)
-   print(instr)
 
    ControlSignals.set_instr_name(instr.get_mnemonic().lower())
 
@@ -106,11 +105,14 @@ for t in itertools.count():
    if instr._mnemonic.upper() == "ECALL":
        if RegFile.reg_vals[10] == 0:
            print("ECALL(0): HALT")
-           exit()
+           break # breaking out of loop = exiting processor
+                 # then, we can inspect its reg values
        if RegFile.reg_vals[10] == 1:
            print("ECALL(" + str(RegFile.reg_vals[10]) + "): " + str(RegFile.reg_vals[11]))
+       if RegFile.reg_vals[10] == 10:
+           print("ECALL(10): EXIT")
+           break
 
-   """
    rs1_val = RegFile.get_rs1()
    rs2_val = RegFile.get_rs2()
    rd_val = RegFile.reg_vals[instr.get_rd()]
@@ -121,16 +123,39 @@ for t in itertools.count():
    alu_fun_index = ControlSignals.get_alufun()
    alu_fun = AluFunVal(alu_fun_index).name
 
-   print(f"rd: {rd_val:8d} [x{rd_index:2d}] " +\
-         f"rs1: {rs1_val:8d} [x{rs1_index:2d}] " +\
-         f"rs2: {rs2_val:8d} [x{rs2_index:2d}] " +\
-         f"i_imm: {i_imm:5d} " +\
-         f"op: {op:04d} " +\
-         f"func3: {func3} " +\
-         f"func7: {func7} " +\
-         f"alu_fun: ALU_{alu_fun}"
-   )
-   """
+   UNKNOWN_VAL = "xxxxxxxx"
+   debug_str = " rd: "
+   if rd_val == None: 
+       debug_str += UNKNOWN_VAL
+   else: 
+       debug_str += f"{rd_val:8d} [x{rd_index:2d}]"
+   debug_str += " rs1: "
+   if rs1_val == None:
+        debug_str += UNKNOWN_VAL
+   else:
+        debug_str += f"{rs1_val:8d} [x{rs1_index:2d}]"
+   debug_str += " rs2: "
+   if rs2_val == None:
+        debug_str += UNKNOWN_VAL
+   else:
+        debug_str += f"{rs2_val:8d} [x{rs2_index:2d}]"
+   debug_str += " i_imm: "
+   if i_imm == None:
+        debug_str += "0000"
+   else:
+        debug_str += f"{i_imm:04x}"
+   debug_str += f" op: {op:02d}"
+   if func3 == None:
+        debug_str += "0"
+   else:
+        debug_str += f"{func3}"
+   if func7 == None:
+        debug_str += "0"
+   else:
+        debug_str += f"{func7}"
+   
+   debug_str += f" alu_fun: ALU_{alu_fun}"
+   print(debug_str)
 
    # clock logic blocks, PC is the only clocked module!
    # here the next pc value is always +4

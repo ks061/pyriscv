@@ -17,7 +17,6 @@ Represents ALU function values
 for each operation
 """
 class AluFunVal(Enum):
-    X = -1
     NOP = 0
     XOR = 1
     COPY = 2

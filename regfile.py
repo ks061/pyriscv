@@ -36,7 +36,7 @@ class RegFile:
 
 	# array of register values indexed
         # by register number
-	reg_vals = [0 for i in range(NUM_REGS)]
+	reg_vals = [0 if i == 0 else None for i in range(NUM_REGS)]
 	
 	# private rs1 and rs2 fields
         # made accessible through the lambda
@@ -60,17 +60,21 @@ class RegFile:
                 RegFile.reg_vals[wa] = wd
 	
 	def display():
-		out_str = ""
-		reg_num = 0
-		while (reg_num < RegFile.NUM_REGS):
-			for i in range(RegFile.NUM_REGS_PER_LINE):
-				out_str += \
-				str(regNumToName(reg_num))\
-				.rjust(RegFile.NUM_STR_PADDING) +\
-				 ": " + f"{RegFile.reg_vals[reg_num]:08x}" + " "
-				reg_num += 1
-			out_str += "\n"
-		print(out_str)	
+                out_str = ""
+                reg_num = 0
+                while (reg_num < RegFile.NUM_REGS):
+                        for i in range(RegFile.NUM_REGS_PER_LINE):
+                                out_str += str(regNumToName(reg_num))\
+                                           .rjust(RegFile.NUM_STR_PADDING) +\
+                                           ": "
+                                if RegFile.reg_vals[reg_num] == None:
+                                    out_str += "xxxxxxxx"
+                                else:
+                                    out_str += \
+                                        f"{RegFile.reg_vals[reg_num]:08x}"
+                                reg_num += 1
+                        out_str += "\n"
+                print(out_str)	
 		
 if __name__ == "__main__":
 
