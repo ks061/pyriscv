@@ -48,13 +48,15 @@ class RegFile:
 	get_rs2 = lambda: RegFile._rs2
 
 	def read(rs1_index, rs2_index):
-            RegFile._rs1 = RegFile.reg_vals[rs1_index] 
-            RegFile._rs2 = RegFile.reg_vals[rs2_index]
+            if rs1_index != None:
+                RegFile._rs1 = RegFile.reg_vals[rs1_index] 
+            if rs2_index != None:
+                RegFile._rs2 = RegFile.reg_vals[rs2_index]
 
 	def clock(wa, wd, en):    
             if wa == None:
                 return
-            if wd == -1:
+            if wd == -1 or wd == None:
                 return
             if en == True:
                 RegFile.reg_vals[wa] = wd

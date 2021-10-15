@@ -57,6 +57,18 @@ class ALU:
         (AluFunVal["OR"], "or")
     ])
     
+    def _check_op1_undef(op1):
+        if op1 == None: raise Exception("ALU Exception: op1 not defined.")
+
+    def _check_op2_undef(op2):
+        if op2 == None: raise Exception("ALU Exception: op2 not defined.")
+    
+    def _check_op1_op2_undef(op1, op2):
+        if op1 == None and op2 == None:
+            raise Exception("ALU Exception: op1 and op2 not defined.")
+        if op1 == None: ALU._handle_op1_undef()
+        if op2 == None: ALU._handle_op2_undef()
+            
     def alu(op1, op2, alu_fun):
         return getattr(ALU,
                        "_" + str(AluFunVal(alu_fun).name.lower())
@@ -68,32 +80,41 @@ class ALU:
                      # along the lines of addi x0, x0, 0
 
     def _xor(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         return op1 ^ op2
 
     def _copy(op1, op2):
+        ALU._check_op1_undef(op1)
         return op1
 
     def _sltu(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         if abs(op1) < abs(op2): return 1
         else: return 0
 
     def _and(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         return op1 & op2
 
     def _add(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         return op1 + op2
 
     def _slt(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         if op1 < op2: return 1
         else: return 0
 
     def _sra(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         return op1 >> op2
 
     def _sub(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         return op1 - op2
 
     def _srl(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         if op2 == 0: return op1 # not changing underlying
 			       # value (result from op1)
         if op1 >= 0: return op1 >> op2 # if op1 pos, same as sra
@@ -110,9 +131,11 @@ class ALU:
         else: return op1 >> op2
 	
     def _sll(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         return op1 << op2
 
     def _or(op1, op2):
+        ALU._check_op1_op2_undef(op1, op2)
         return op1 | op2
 
 if __name__ == "__main__":
