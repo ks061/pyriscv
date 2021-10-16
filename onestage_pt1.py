@@ -33,7 +33,7 @@ else: mem_address = "riscv_isa/programs/fetch_test.hex"
 imem = readmemh(mem_address,
    word_size = 4, byteorder = 'big')
  
-def display():
+def display(pc_val, instr):
    if pc_val == None:
        return "PC: xxxxxxxx, IR: xxxxxxxx"
    else:
@@ -108,7 +108,7 @@ for t in itertools.count():
    if startup:
        PC.reset(imem.begin_addr)       
        startup = False
-       print(f"{t:20d}:", display())
+       print(f"{t:20d}:", display(pc_val, instr=None))
        continue
   
    # access instruction memory
@@ -155,7 +155,7 @@ for t in itertools.count():
 
 
    # print one line at the end of the clock cycle
-   print(f"{t:20d}:", display())
+   print(f"{t:20d}:", display(pc_val, instr))
    
    # then display debug line
    print(_get_debug_str(instr))
