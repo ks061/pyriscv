@@ -45,6 +45,8 @@ class ControlSignals:
 
     instr_name: str
 
+    _pc_sel = 0
+
     """
     Loads the control signals into
     the ControlSignals class field instr_ctrl_signals.
@@ -80,9 +82,12 @@ class ControlSignals:
         if not ControlSignals._has_loaded_csv: ControlSignals.load()
         ControlSignals.instr_name = instr_name.lower()
 
-    get_pc_sel = lambda: ControlSignals.instr_ctrl_signals[
-                             ControlSignals.instr_name
-                         ][ControlSignals.COL_NAME_PC_SEL]
+    def set_pc_sel(pc_sel: int):
+        ControlSignals._pc_sel = pc_sel
+
+    def get_pc_sel():
+        return ControlSignals._pc_sel
+
     get_alufun = lambda: ControlSignals.instr_ctrl_signals[
                              ControlSignals.instr_name
                          ][ControlSignals.COL_NAME_ALUFUN]
@@ -104,7 +109,7 @@ class ControlSignals:
     get_mem_val = lambda: ControlSignals.instr_ctrl_signals[
                              ControlSignals.instr_name
                          ][ControlSignals.COL_NAME_MEM_VAL]
-
+    
     def _set_high_impedance_to_neg_one(rows):
         for i in range(len(rows)):
             for j in range(len(rows[i])):

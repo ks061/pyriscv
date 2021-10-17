@@ -66,8 +66,8 @@ class ALU:
     def _check_op1_op2_undef(op1, op2):
         if op1 == None and op2 == None:
             raise Exception("ALU Exception: op1 and op2 not defined.")
-        if op1 == None: ALU._handle_op1_undef()
-        if op2 == None: ALU._handle_op2_undef()
+        if op1 == None: ALU._check_op1_undef(op1)
+        if op2 == None: ALU._check_op2_undef(op2)
             
     def alu(op1, op2, alu_fun):
         return getattr(ALU,

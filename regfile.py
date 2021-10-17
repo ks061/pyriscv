@@ -54,7 +54,7 @@ class RegFile:
                 RegFile._rs2 = RegFile.reg_vals[rs2_index]
 
 	def clock(wa, wd, en):    
-            if wa == None:
+            if wa == None or wa == 0:
                 return
             if wd == -1 or wd == None:
                 return
@@ -79,7 +79,6 @@ class RegFile:
                 print(out_str)	
 		
 if __name__ == "__main__":
-
 	# TESTING WRITING TO REGISTER FILE
         # THROUGH ITS CLOCK METHOD
 

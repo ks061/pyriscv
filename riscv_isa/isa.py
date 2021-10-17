@@ -1,5 +1,10 @@
 from .csr_list import csrs
 from .instr_codes import instrOpcode, instrFunct3, instrFunct7, instrTypes
+from itype import IType
+from utype import UType
+from stype import SType
+from branch_targ_gen import BranchTargGen
+from jump_targ_gen import JumpTargGen
 
 class BadInstruction(Exception):
         pass
@@ -65,6 +70,9 @@ class Instruction():
                 self._rd = None
                 self._rs1 = None
                 self._rs2 = None
+                # set by imm combinational blocks, namely
+                # BranchTargGen, JumpTargGen, ITypeSignExtend,
+                # STypeSignExtend, and UType
                 self._imm = None
 
                 self._type = None
@@ -153,12 +161,9 @@ class Instruction():
                 self._type = instrNameToType(self._mnemonic) 
 
         def _decode_by_type_and_set_bits(self):
-                if self._type == instrTypes.I: 
-                        self._decode_i_instr_and_set_bits()
-                if self._type == instrTypes.R: 
-                        self._decode_r_instr_and_set_bits()
-                if self._type == instrTypes.U:
-                        self._decode_u_instr_and_set_bits()
+                getattr(self, "_decode_" +\
+                        str(instrTypes(self._type).name.lower()) +\
+                        "_instr_and_set_bits")()
 
         def _decode_and_set_opcode(self):
                 self._opcode = self.val & 0x7f # set lower 7 bits
@@ -183,7 +188,6 @@ class Instruction():
                 self._decode_and_set_rd()
                 self._decode_and_set_funct3()
                 self._decode_and_set_rs1()
-                self._imm = self.val >> 20 # extract immediate constant
 
         def _decode_r_instr_and_set_bits(self):
                 self._decode_and_set_rd()
@@ -194,43 +198,72 @@ class Instruction():
 
         def _decode_u_instr_and_set_bits(self):
                 self._decode_and_set_rd()
-                self._imm = self.val >> 20 # extract immediate constant
-  
-        def _get_instr_code_equivalence(self, instr_name):    
-                if self._mnemonic.upper() == instr_name.upper():
-                    return True
+
+        def _decode_s_instr_and_set_bits(self):
+                self._decode_and_set_funct3()
+                self._decode_and_set_rs1()
+                self._decode_and_set_rs2()
+ 
+        def _decode_sb_instr_and_set_bits(self):
+                self._decode_and_set_funct3()
+                self._decode_and_set_rs1()
+                self._decode_and_set_rs2()
+
+        def _decode_uj_instr_and_set_bits(self):
+                self._decode_and_set_rd()
+
+        def update_imm(self):
+                if self._type == instrTypes.I: self._imm = IType.get_imm()
+                if self._type == instrTypes.S: self._imm = SType.get_imm()
+                if self._type == instrTypes.U: self._imm = UType.get_imm()
+                if self._type == instrTypes.SB: self._imm = BranchTargGen.get_branch()
+                if self._type == instrTypes.UJ: self._imm = JumpTargGen.get_jump() 
+ 
+        def _get_instr_name_equivalence(self, instr_names: list):
+                for instr_name in instr_names:    
+                    if self._mnemonic.upper() == instr_name.upper():
+                        return True
                 return False
-        
-        def __str__ (self):
+
+        def __str__(self):
                 str_out = str(self._mnemonic).lower() + " "
-                if self._get_instr_code_equivalence("ADDI"): 
+                if self._get_instr_name_equivalence(["ADDI"]): 
                     if self._rs1 == 0x0:
                         return "li " + regNumToName(self._rd) + "," +\
                                str(self._imm)
-                    return str_out + regNumToName(self._rd) + "," +\
-                           regNumToName(self._rs1) + "," +\
-                           str(self._imm)    
-                elif self._get_instr_code_equivalence("ECALL"):
+                if self._get_instr_name_equivalence(["ECALL"]):
                     return str_out
-                elif (self._get_instr_code_equivalence("ADD")\
-                      or self._get_instr_code_equivalence("SLL")):
+                if self._get_instr_name_equivalence(["ADD", "OR", "SLL", 
+                                                     "SUB", "XOR"]):
                     return str_out + regNumToName(self._rd) + "," +\
                            regNumToName(self._rs1) + "," +\
                            regNumToName(self._rs2)
-                elif (self._get_instr_code_equivalence("ANDI")\
-                      or self._get_instr_code_equivalence("ORI")\
-                      or self._get_instr_code_equivalence("SLTI")
-                      or self._get_instr_code_equivalence("SLLI") 
-                     ):
+                if self._get_instr_name_equivalence(["ADDI", "ANDI", "ORI", 
+                                                       "SLTI", "SLLI"]): 
                     return str_out + regNumToName(self._rd) + "," +\
                            regNumToName(self._rs1) + "," +\
                            str(self._imm)
-                elif self._get_instr_code_equivalence("LUI"):
+                if self._get_instr_name_equivalence(["BEQ", "BNE", "BLT", "BLTU",
+                                                       "BGE", "BGEU"]):
+                    if self._rs2 == 0x0:
+                        return str(self._mnemonic).lower() + "z " + regNumToName(self._rs1) +\
+                               "," + f"0x{self._imm:x}"
+                    return str_out + regNumToName(self._rs1) + "," +\
+                           regNumToName(self._rs2) + "," +\
+                           f"0x{self._imm:x}"
+                if self._get_instr_name_equivalence(["JAL"]):
+                    if self._rd == 0x0:
+                        return "j " + f"{self._imm:x}"
                     return str_out + regNumToName(self._rd) + "," +\
                            str(self._imm)
-                else:
-                    raise Exception("Cannot decode instructions other than " +\
-                                    "R, I, or U type at this time.")
+                if self._get_instr_name_equivalence(["LW"]):
+                    return str_out + regNumToName(self._rd) + "," +\
+                           str(self._imm) + f"({regNumToName(self._rs1)})"
+                if self._get_instr_name_equivalence(["SW"]):
+                    return str_out + regNumToName(self._rs2) + "," +\
+                           str(self._imm) + f"({regNumToName(self._rs1)})"
+                
+                raise Exception(f"Cannot decode instruction {self._mnemonic} at this time.")
 
         def _reset_instr_components(self):
                 self._opcode = None
