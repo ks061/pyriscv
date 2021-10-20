@@ -262,6 +262,10 @@ class Instruction():
                 if self._get_instr_name_equivalence(["SW"]):
                     return str_out + regNumToName(self._rs2) + "," +\
                            str(self._imm) + f"({regNumToName(self._rs1)})"
+
+                # added by Marchiori
+                if self._get_instr_name_equivalence(["LUI"]):
+                    return str_out + regNumToName(self._rd) + f",0x{(0xfffff000 & self.val)>>12:05x}"
                 
                 raise Exception(f"Cannot decode instruction {self._mnemonic} at this time.")
 
