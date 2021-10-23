@@ -32,13 +32,7 @@ from utype import UType
 # the PC register
 PC = Register()
  
-# construct a memory segment for instruction memory
-# load the contents from the 32-bit fetch_test hex file (big endian)
-if len(sys.argv) >= 2: mem_address = sys.argv[1]
-else: mem_address = "riscv_isa/programs/fetch_test.hex"
-imem = readmemh(mem_address,
-   word_size = 4, byteorder = 'big')
- 
+
 def display():
    if instr == None:
        return "PC: xxxxxxxx, IR: xxxxxxxx"
@@ -99,11 +93,11 @@ def full_display():
    print(f"{t:20d}:", display())
    
    # then display debug line
-   print(_get_debug_str())
-   print()
+   #print(_get_debug_str())
+   #print()
 
    # then display regs
-   RegFile.display()
+   #RegFile.display()
 
 def _handle_ecall():
    if instr._mnemonic.upper() == "ECALL":
@@ -149,11 +143,13 @@ _mem_seg = MemorySegment(
 
 elf_load_data = load_elf('riscv_isa/programs/return')
 elf_imem = elf_load_data[0]
-elf_dmem = Memory(elf_load_data[0])
+#elf_dmem = Memory(elf_load_data[0])
 sym_table = elf_load_data[1]
+imem = elf_imem
 
-_mem = Memory(segment=elf_imem)
-data_mem = DataMem.init(_mem)
+#_mem = Memory(segment=elf_imem)
+#data_mem = DataMem.init(_mem)
+data_mem = DataMem.init(Memory(elf_imem))
  
 wb_sel_mux = make_mux(DataMem.get_read_data, # non-implemented input;
                                   # mux index reserved
@@ -175,8 +171,8 @@ for t in itertools.count():
    if startup:
        print(f"{t:20d}:", display())
        startup=False 
-       PC.reset(sym_table["_start"])
-       RegFile.clock(2, 0xEFFFF, True)
+       PC.reset(sym_table["_start"] - 4)
+       #RegFile.clock(2, 0xEFFFF, True)
        continue
    else:
        # select PC
@@ -192,10 +188,10 @@ for t in itertools.count():
    
    # access instruction memory
    
-   DataMem.exec(addr = sym_table["_start"], 
-                wdata = None, 
-                mem_rw = 0, 
-                mem_val = 4)
+#    DataMem.exec(addr = sym_table["_start"], 
+#                 wdata = None, 
+#                 mem_rw = 0, 
+#                 mem_val = 4)
    instr = Instruction(imem[PC.out()], PC.out())
    
    # set control signals
