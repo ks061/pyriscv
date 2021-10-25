@@ -14,6 +14,7 @@ INSTRUCTION,TYPE,OPCODE,FUNCT3,FUNCT7/IMM,pc_sel,AluFun,Op2Sel,Op1Sel,wb_sel,rf_
 "rem rd, rs1, rs2",,,0x6,0x01,0,d,0,0,1,1,0,xx,R[rd] ← (R[rs1] % R[rs2]
 "and rd, rs1, rs2",,,0x7,0x00,0,4,0,0,1,1,0,xx,R[rd] ← R[rs1] & R[rs2]
 "lb rd, offset(rs1)",I,0x03,0x0,,0,5,2,0,0,1,0,1,"R[rd] ← SignExt(Mem(R[rs1] + offset, byte))"
+"lbu rd, offset(rs1)",,,0x4,,0,5,2,0,0,1,0,1,
 "lh rd, offset(rs1)",,,0x1,,0,5,2,0,0,1,0,2,"R[rd] ← SignExt(Mem(R[rs1] + offset, half))"
 "lw rd, offset(rs1)",,,0x2,,0,5,2,0,0,1,0,4,"R[rd] ← Mem(R[rs1] + offset, word)"
 "addi rd, rs1, imm",,0x13,0x0,,0,5,2,0,1,1,0,xx,R[rd] ← R[rs1] + imm
@@ -34,7 +35,36 @@ a0 = 10 is exit or end of code indicator."
  PC ← PC + {offset, 1b'0}"
 "bne rs1, rs2, offset",,,0x1,,xx,0,0,0,0,0,0,xx,"if(R[rs1] != R[rs2]) 
  PC ← PC + {offset, 1b'0}"
+"blt rs1, rs2, offset",SB,0x63,0x4,,xx,0,0,0,0,0,0,xx,--
+"bgeu rs1, rs2, offset",SB,0x63,0x7,,xx,0,0,0,0,0,0,xx,--
+"bltu rs1, rs2, offset",SB,0x63,0x6,,xx,0,0,0,0,0,0,xx,--
 "lui rd, offset",U,0x37,,,0,2,xx,1,1,1,0,xx,"R[rd] ← {offset, 12b'0}"
-"jal rd, imm",UJ,0x6f,,,3,0,0,0,0,1,0,xx,"R[rd] ← PC + 4 
+"auipc rd, imm",U,0x17,,,0,5,3,1,1,1,0,xx,--
+"jal rd, imm",UJ,0x6f,,,3,0,0,0,2,1,0,xx,"R[rd] ← PC + 4 
 PC ← PC + {imm, 1b'0}"
+"jalr rd, rs1, imm",I,0x67,0x0,,1,0,0,0,2,1,0,xx,
 ,,,,,,,,,,,,Note regarding all bolded values in the mem_val column,
+,,,,,,,,,,,,ALU Function Value (AluFun),ALU operation
+,,,,,,,,,,,,"0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11","0 (no operation)
+Xor
+Copy (input 1 is copied to output)
+Sltu (shift left unsigned)
+And
+Add
+Slt (set less than)
+Sra (shift right arithmetic)
+Sub
+Srl (shift right logical)
+Sll (shift left logical)
+Or"

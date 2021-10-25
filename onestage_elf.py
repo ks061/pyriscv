@@ -18,6 +18,7 @@ from pydigital.elfloader import load_elf
 import itertools
 from itype import IType
 from jump_targ_gen import JumpTargGen
+from jump_reg_targ_gen import JumpRegTargGen
 from mux import make_mux 
 from pydigital.memory import readmemh, Memory, MemorySegment
 from pydigital.register import Register
@@ -118,11 +119,20 @@ def _raise_jalr_pc_sel_excep():
 def _raise_excep_pc_sel_excep():
     raise Exception("exception pc selection not implemented.")
 
-# mux setup
+data_path = None
+if len(sys.argv) < 2: data_path = 'riscv_isa/programs/return'
+else: data_path = sys.argv[1]
+print(data_path)
+elf_load_data = load_elf(data_path)
+elf_imem = elf_load_data[0]
+#elf_dmem = Memory(elf_load_data[0])
+sym_table = elf_load_data[1]
+imem = elf_imem
 
+# mux setup
 pc_sel_mux = make_mux(
     lambda: PC.out() + 4,
-    lambda: _raise_jalr_pc_sel_excep(),
+    JumpRegTargGen.get_jalr,
     BranchTargGen.get_branch,
     JumpTargGen.get_jump,
     lambda: _raise_excep_pc_sel_excep()
@@ -141,12 +151,6 @@ _mem_seg = MemorySegment(
     word_size = WORD_SIZE_BYTES
 )
 
-elf_load_data = load_elf('riscv_isa/programs/return')
-elf_imem = elf_load_data[0]
-#elf_dmem = Memory(elf_load_data[0])
-sym_table = elf_load_data[1]
-imem = elf_imem
-
 #_mem = Memory(segment=elf_imem)
 #data_mem = DataMem.init(_mem)
 data_mem = DataMem.init(Memory(elf_imem))
@@ -159,6 +163,47 @@ wb_sel_mux = make_mux(DataMem.get_read_data, # non-implemented input;
                       lambda: PC.out()+4,
                       lambda: -1) # not implemented; placeholder      
 
+def _print_func_header(addr, reset=False):
+    if reset: name = "reset"
+    else: 
+        name = "func not found" # if not found at end of this for loop
+        for key, value in sym_table.items():
+            if value == addr: name = key
+    print(f"------------------------------<       {name}        >------------------------------")
+
+# handle syscall
+def _handle_syscall():
+    if ControlSignals.get_mem_rw() == 0: return False
+    if "tohost" not in sym_table: return False
+    # val = imem[sym_table["tohost"]]
+    DataMem.read(sym_table["tohost"], byte_count = 8, signed=True)
+    val = DataMem.get_read_data()
+    if ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
+                      op2sel_mux(ControlSignals.get_op2sel()), 
+                      ControlSignals.get_alufun()
+              ) == sym_table["tohost"] + 4:
+       if (val & 0x1) == 0x1:
+           print(f"SYSCALL: exit ({val>>1})")
+           print("Final register values")
+           RegFile.display()
+           sys.exit(val>>1)
+       else:
+          try:
+              DataMem.read(val, byte_count = 8, signed = True)
+              which = DataMem.get_read_data()
+              print(which)
+          except:
+              return
+          if which != 64: return
+          DataMem.read(val+8, byte_count = 8, signed = True)
+          arg0 = DataMem.get_read_data()
+          DataMem.read(val+16, byte_count = 8, signed = True)
+          arg1 = DataMem.get_read_data()
+          DataMem.read(val+24, byte_count = 8, signed = True)
+          arg2 = DataMem.get_read_data()
+          print(f"SYSCALL: printf ({val>>1})")
+          print(DataMem._mem.mem[arg1:arg1+arg2].decode("ASCII"), end="")
+          DataMem._mem.mem[sym_table['fromhost']] = 1
 # init other vars for processor loop
 startup = True
 instr = None
@@ -166,12 +211,13 @@ instr = None
 # generate system clocks until we reach a stopping condition
 # this is basically the run function from the last lab
 for t in itertools.count():
-   
+
    # RESET the PC register
    if startup:
        print(f"{t:20d}:", display())
        startup=False 
        PC.reset(sym_table["_start"] - 4)
+       _print_func_header(addr=None, reset=True)
        #RegFile.clock(2, 0xEFFFF, True)
        continue
    else:
@@ -181,7 +227,7 @@ for t in itertools.count():
            continue 
        else:
            PC.clock(pc_sel_mux(ControlSignals.get_pc_sel()))
-       
+ 
        if imem[PC.out()] == 0:
            print("Done -- end of program.")
            break
@@ -192,8 +238,17 @@ for t in itertools.count():
 #                 wdata = None, 
 #                 mem_rw = 0, 
 #                 mem_val = 4)
+   if instr != None:
+       if instr.get_mnemonic().upper() == "JAL":
+           _print_func_header(PC.out()) 
    instr = Instruction(imem[PC.out()], PC.out())
-   
+   if instr.is_csr():
+       print(f"{t:20d}:", display())
+       continue
+   if instr._get_instr_name_equivalence(["FENCE"]):
+      print(f"{t:20d}:", display())
+      continue
+ 
    # set control signals
    ControlSignals.set_instr_name(instr.get_mnemonic().lower())
 
@@ -217,7 +272,7 @@ for t in itertools.count():
    # update instr imm from imm combo block
    # handling imm's for current instr type   
    instr.update_imm()
- 
+
    # regfile reading (combinational block)
    rs1_index = instr.get_rs1() 
    rs2_index = instr.get_rs2()
@@ -248,15 +303,21 @@ for t in itertools.count():
        continue
    elif instr._type == instrTypes.UJ:
        ControlSignals.set_pc_sel(3)
-       full_display()
-       continue
+   elif instr._get_instr_name_equivalence(["JALR"]):
+       ControlSignals.set_pc_sel(1)
    else:
        ControlSignals.set_pc_sel(0)
 
+   # after IType calculated
+   JumpRegTargGen.set_jalr(RegFile.get_rs1(), IType.get_imm())
+   
    # select op1 and op2
    op1=op1sel_mux(ControlSignals.get_op1sel())
    op2=op2sel_mux(ControlSignals.get_op2sel())
 
+   if instr._get_instr_name_equivalence(["LBU", "LHU", "LWU"]):
+       signed = False
+   else: signed = True
    DataMem.exec(
        addr = ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
                       op2sel_mux(ControlSignals.get_op2sel()), 
@@ -264,7 +325,8 @@ for t in itertools.count():
               ),
        wdata = RegFile.get_rs2(), 
        mem_rw = ControlSignals.get_mem_rw(),
-       mem_val = 4
+       mem_val = ControlSignals.get_mem_val(),
+       signed = signed
    )
 
    # regfile writing
@@ -280,7 +342,8 @@ for t in itertools.count():
    if _handle_ecall(): break # if instr was ecall and dictates processor
                              # stopping, i.e. halt or exit, break out of loop
 
-   
+   # then handle SYSCALL   
+   if _handle_syscall(): break # break for exit if specified by syscall
 
 print("Final register values")
 RegFile.display()

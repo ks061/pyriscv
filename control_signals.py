@@ -19,7 +19,7 @@ class ControlSignals:
     
     ROW_INDEX_HEADER = 1 
     ROW_INDEX_INSTR_BEGIN = 2
-    ROW_INDEX_INSTR_END = 33
+    ROW_INDEX_INSTR_END = 39
     
     COL_INDEX_INSTRUCTION = 0
 

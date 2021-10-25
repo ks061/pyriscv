@@ -132,7 +132,9 @@ class ALU:
 	
     def _sll(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
-        return op1 << op2
+        out = op1 << op2
+        if (out >> 31 == 0x1): return -out
+        else: return out
 
     def _or(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)

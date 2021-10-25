@@ -225,6 +225,11 @@ class Instruction():
                         return True
                 return False
 
+        def is_csr(self):
+            if self._get_instr_name_equivalence(["CSRRW", "CSRRS", "CSRRC",
+                                                 "CSRRWI", "CSRRSI", "CSRRCI"]):
+                return True
+
         def __str__(self):
                 str_out = str(self._mnemonic).lower() + " "
                 if self._get_instr_name_equivalence(["ADDI"]): 
@@ -238,8 +243,9 @@ class Instruction():
                     return str_out + regNumToName(self._rd) + "," +\
                            regNumToName(self._rs1) + "," +\
                            regNumToName(self._rs2)
-                if self._get_instr_name_equivalence(["ADDI", "ANDI", "ORI", 
-                                                       "SLTI", "SLLI"]): 
+                if self._get_instr_name_equivalence(["ADDI", "ANDI", "ORI",
+                                                     "SLTI", "SLLI", "JALR",
+                                                     "SRAI"]): 
                     return str_out + regNumToName(self._rd) + "," +\
                            regNumToName(self._rs1) + "," +\
                            str(self._imm)
@@ -256,17 +262,21 @@ class Instruction():
                         return "j " + f"{self._imm:x}"
                     return str_out + regNumToName(self._rd) + "," +\
                            str(self._imm)
-                if self._get_instr_name_equivalence(["LW"]):
+                if self._get_instr_name_equivalence(["LB", "LH", "LW", "LBU"]):
                     return str_out + regNumToName(self._rd) + "," +\
                            str(self._imm) + f"({regNumToName(self._rs1)})"
-                if self._get_instr_name_equivalence(["SW"]):
+                if self._get_instr_name_equivalence(["SB", "SH", "SW"]):
                     return str_out + regNumToName(self._rs2) + "," +\
                            str(self._imm) + f"({regNumToName(self._rs1)})"
+                if self.is_csr() or self._get_instr_name_equivalence(["FENCE"]):
+                    return str_out + " instruction"
 
                 # added by Marchiori
                 if self._get_instr_name_equivalence(["LUI"]):
                     return str_out + regNumToName(self._rd) + f",0x{(0xfffff000 & self.val)>>12:05x}"
-                
+                if self._get_instr_name_equivalence(["AUIPC"]):
+                    return str_out + regNumToName(self._rd) + "," +\
+                           str(self._imm)
                 raise Exception(f"Cannot decode instruction {self._mnemonic} at this time.")
 
         def _reset_instr_components(self):

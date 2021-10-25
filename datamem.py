@@ -26,23 +26,32 @@ class DataMem:
     def init(mem):
         DataMem._mem = mem
 
-    def exec(addr, wdata, mem_rw, mem_val = 4):
-        if mem_val != 4: raise Exception("DataMem only built for 4-byte words")
-        
-        if mem_rw == 0: DataMem.read(addr)
-        else: DataMem.clock(addr, wdata)
+    def exec(addr, wdata, mem_rw, mem_val = 4, byte_count = 4, signed = True):
+        if mem_val not in [1, 2, 4, 8]: return        
+        if mem_rw == 0: DataMem.read(addr,
+                                     byte_count=byte_count,
+                                     signed=signed)
+        else: DataMem.clock(addr,
+                            wdata,
+                            mem_rw,
+                            byte_count=byte_count)
 
-    def read(addr):
+    def read(addr, byte_count, signed):
         try: 
-             DataMem._read_data = DataMem._mem.out(addr)
+             DataMem._read_data = DataMem._mem.out(addr,
+                                                   byte_count=byte_count,
+                                                   signed=False)
         except IndexError: # memory segment not found
                            # probably b/c invalid addr
                            # in turn b/c wasn't an lw 
                            # or sw instr
             return
 
-    def clock(addr, wdata):
-        DataMem._mem.clock(addr, wdata, mem_rw=1)
+    def clock(addr,
+              wdata,
+              mem_rw,
+              byte_count):
+        DataMem._mem.clock(addr, wdata, mem_rw, byte_count=byte_count)
 
 if __name__ == "__main__":
     pass
