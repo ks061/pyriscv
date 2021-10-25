@@ -235,7 +235,7 @@ class Instruction():
                 if self._get_instr_name_equivalence(["ADDI"]): 
                     if self._rs1 == 0x0:
                         return "li " + regNumToName(self._rd) + "," +\
-                               str(self._imm)
+                               f"0x{self._imm:x}"
                 if self._get_instr_name_equivalence(["ECALL"]):
                     return str_out
                 if self._get_instr_name_equivalence(["ADD", "OR", "SLL", 
@@ -245,10 +245,13 @@ class Instruction():
                            regNumToName(self._rs2)
                 if self._get_instr_name_equivalence(["ADDI", "ANDI", "ORI",
                                                      "SLTI", "SLLI", "JALR",
-                                                     "SRAI"]): 
+                                                     "SRAI"]):
+                    if self._get_instr_name_equivalence(["JALR"]) and\
+                       self._rd == 0x0 and self._rs1 == 0x1: 
+                        return "ret"
                     return str_out + regNumToName(self._rd) + "," +\
                            regNumToName(self._rs1) + "," +\
-                           str(self._imm)
+                           f"0x{self._imm:x}"
                 if self._get_instr_name_equivalence(["BEQ", "BNE", "BLT", "BLTU",
                                                        "BGE", "BGEU"]):
                     if self._rs2 == 0x0:
@@ -261,13 +264,13 @@ class Instruction():
                     if self._rd == 0x0:
                         return "j " + f"{self._imm:x}"
                     return str_out + regNumToName(self._rd) + "," +\
-                           str(self._imm)
+                           f"0x{self._imm:x}"
                 if self._get_instr_name_equivalence(["LB", "LH", "LW", "LBU"]):
                     return str_out + regNumToName(self._rd) + "," +\
-                           str(self._imm) + f"({regNumToName(self._rs1)})"
+                           f"0x{self._imm:x}" + f"({regNumToName(self._rs1)})"
                 if self._get_instr_name_equivalence(["SB", "SH", "SW"]):
                     return str_out + regNumToName(self._rs2) + "," +\
-                           str(self._imm) + f"({regNumToName(self._rs1)})"
+                           f"0x{self._imm:x}" + f"({regNumToName(self._rs1)})"
                 if self.is_csr() or self._get_instr_name_equivalence(["FENCE"]):
                     return str_out + " instruction"
 
@@ -276,7 +279,7 @@ class Instruction():
                     return str_out + regNumToName(self._rd) + f",0x{(0xfffff000 & self.val)>>12:05x}"
                 if self._get_instr_name_equivalence(["AUIPC"]):
                     return str_out + regNumToName(self._rd) + "," +\
-                           str(self._imm)
+                           f"0x{self._imm:x}"
                 raise Exception(f"Cannot decode instruction {self._mnemonic} at this time.")
 
         def _reset_instr_components(self):
