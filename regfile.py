@@ -11,6 +11,7 @@ the RISC-V Sodor 1-Stage processor.
 # Imports
 import random
 from riscv_isa.isa import regNumToName
+from pydigital.utils import as_twos_comp, sextend 
 from util import Util
 
 """
@@ -71,9 +72,15 @@ class RegFile:
                                            ": "
                                 if RegFile.reg_vals[reg_num] == None:
                                     out_str += "xxxxxxxx"
+                                elif reg_num == 0x1:
+                                    out_val = RegFile.reg_vals[reg_num]
+                                    if out_val == 0: out_str += f" {out_val:08x}"
+                                    else: out_str += f"+{out_val:08x}" 
                                 else:
-                                    out_str += \
-                                        f"{RegFile.reg_vals[reg_num]:08x}"
+                                    out_val = sextend(RegFile.reg_vals[reg_num],32)
+                                    if out_val == 0: out_str += f" {out_val:08x}"
+                                    elif out_val > 0: out_str += f"+{out_val:08x}"
+                                    else: out_str += f"{out_val:09x}"
                                 reg_num += 1
                         out_str += "\n"
                 print(out_str)	

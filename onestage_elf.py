@@ -191,7 +191,6 @@ def _handle_syscall():
           try:
               DataMem.read(val, byte_count = 8, signed = True)
               which = DataMem.get_read_data()
-              print(which)
           except:
               return
           if which != 64: return
@@ -201,7 +200,7 @@ def _handle_syscall():
           arg1 = DataMem.get_read_data()
           DataMem.read(val+24, byte_count = 8, signed = True)
           arg2 = DataMem.get_read_data()
-          print(f"SYSCALL: printf ({val>>1})")
+          #print(f"SYSCALL: printf ({val>>1})")
           print(DataMem._mem.mem[arg1:arg1+arg2].decode("ASCII"), end="")
           DataMem._mem.mem[sym_table['fromhost']] = 1
 # init other vars for processor loop
