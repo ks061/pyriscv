@@ -100,7 +100,7 @@ class ALU:
 
     def _add(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
-        return sextend(0xffffffff & (as_twos_comp(op1 + op2)))
+        return sextend(0xffffffff & (as_twos_comp(op1) + as_twos_comp(op2)))
 
     def _slt(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
@@ -109,7 +109,11 @@ class ALU:
 
     def _sra(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
-        print("SRA ALERT")
+        """
+        print(f"op1: {op1:09x}")
+        print(f"sextend(op1): {sextend(op1):09x}")
+        print(f"sextend(op1) >> op2: {sextend(op1) >> op2:09x}")
+        """
         return sextend(op1) >> op2
 
     def _sub(op1, op2):
@@ -135,7 +139,7 @@ class ALU:
 	
     def _sll(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
-        out = op1 << op2
+        out = sextend(as_twos_comp(op1 << op2) & 0xffffffff)
         return out
 
     def _or(op1, op2):

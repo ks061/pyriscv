@@ -1,6 +1,7 @@
 from .csr_list import csrs
 from .instr_codes import instrOpcode, instrFunct3, instrFunct7, instrTypes
 from itype import IType
+from pydigital.utils import as_twos_comp
 from utype import UType
 from stype import SType
 from branch_targ_gen import BranchTargGen
@@ -256,7 +257,7 @@ class Instruction():
                                                        "BGE", "BGEU"]):
                     if self._rs2 == 0x0:
                         return str(self._mnemonic).lower() + "z " + regNumToName(self._rs1) +\
-                               "," + f"0x{self._imm:x}"
+                               "," + f"0x{as_twos_comp(self._imm):x}"
                     return str_out + regNumToName(self._rs1) + "," +\
                            regNumToName(self._rs2) + "," +\
                            f"0x{self._imm:x}"

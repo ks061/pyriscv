@@ -13,6 +13,6 @@ class BranchTargGen:
             imm_0 + (imm_1_4 << 1) +\
             (imm_5_10 << 5) + (imm_11 << 11) +\
             (imm_12 << 12)
-        BranchTargGen._branch = sextend(as_twos_comp(pc + sextend(imm, 13)) & 0xffffffff)
+        BranchTargGen._branch = as_twos_comp(pc + sextend(imm, 13)) & 0xffffffff
 
     get_branch = lambda: BranchTargGen._branch 

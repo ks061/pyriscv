@@ -30,7 +30,7 @@ from stype import SType
 import sys
 from utype import UType
 
-ALL_PRINT_ON = False
+ALL_PRINT_ON = True
 ALL_PRINT_OFF = False
 if ALL_PRINT_ON:
    PRINT_DEBUG_ON = True
@@ -56,7 +56,7 @@ else:
    PRINT_ECALL_ON = True
    PRINT_FINAL_REG_ON = False
    PRINT_FUNC_ON = False
-   PRINT_INSTR_ON = False
+   PRINT_INSTR_ON = True
    PRINT_LINUX_SYSCALL_ON = True
    PRINT_REG_ON = False
    PRINT_SYSCALL_ON = True
@@ -274,7 +274,7 @@ for data_path in data_paths:
               PC.reset(sym_table["_start"])
               continue 
           else:
-              PC.clock(pc_sel_mux(ControlSignals.get_pc_sel()))
+              PC.clock(as_twos_comp(pc_sel_mux(ControlSignals.get_pc_sel())))
 
           if imem[PC.out()] == 0:
               print("Done -- end of program.")
@@ -340,15 +340,15 @@ for data_path in data_paths:
       if ((instr._get_instr_name_equivalence(["BEQ"]) and
          BranchCondGen.get_br_eq()) or
          (instr._get_instr_name_equivalence(["BNE"]) and
-         not BranchCondGen.get_br_eq()) or
+         (not BranchCondGen.get_br_eq())) or
          (instr._get_instr_name_equivalence(["BLT"]) and
          BranchCondGen.get_br_lt()) or
          (instr._get_instr_name_equivalence(["BGE"]) and
-         not BranchCondGen.get_br_lt()) or
+         (not BranchCondGen.get_br_lt())) or
          (instr._get_instr_name_equivalence(["BLTU"]) and
          BranchCondGen.get_br_ltu()) or
          (instr._get_instr_name_equivalence(["BGEU"]) and
-         not BranchCondGen.get_br_ltu())):  
+         (not BranchCondGen.get_br_ltu()))):  
           ControlSignals.set_pc_sel(2)
           full_display()
           continue

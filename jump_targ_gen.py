@@ -1,4 +1,4 @@
-from pydigital.utils import sextend
+from pydigital.utils import sextend, as_twos_comp
 
 class JumpTargGen:
     _jump: int
@@ -13,7 +13,7 @@ class JumpTargGen:
             imm_0 + (imm_1_10 << 1) +\
             (imm_11 << 11) + (imm_12_19 << 12) +\
             (imm_20 << 20)
-        JumpTargGen._jump = pc + sextend(imm, 20)
+        JumpTargGen._jump = as_twos_comp(pc + sextend(imm, 20)) & 0xffffffff
 
     get_jump = lambda: JumpTargGen._jump
         

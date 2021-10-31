@@ -5,6 +5,5 @@ class UType:
     
     def set_imm(imm: int):
         UType._imm = imm
-    
-    get_imm = lambda: sextend(UType._imm, c=20) << 12
-        
+
+    get_imm = lambda: UType._imm << 12
