@@ -71,16 +71,9 @@ class ALU:
         if op2 == None: ALU._check_op2_undef(op2)
             
     def alu(op1, op2, alu_fun):
-        # if op1 != None: 
-            # op1 = as_twos_comp(op1)
-            # print(f"op1: {op1:x}")
-        # if op2 != None:
-            # op2 = as_twos_comp(op2)
-            # print(f"op2: {op2:x}")        
         output = getattr(ALU,
                        "_" + str(AluFunVal(alu_fun).name.lower())
                        )(op1, op2)
-        # print(f"output: {output:x}")
         return output
 
     def _nop(op1, op2):
@@ -107,11 +100,6 @@ class ALU:
 
     def _add(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
-        '''
-        print(f"0x{op1+op2:x}")
-        print(f"0x{as_twos_comp(op1) + as_twos_comp(op2):x}")
-        print(f"0x{0xffffffff & as_twos_comp(op1) + as_twos_comp(op2):x}")
-        '''
         return sextend(0xffffffff & (as_twos_comp(op1 + op2)))
 
     def _slt(op1, op2):
