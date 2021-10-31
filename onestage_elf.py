@@ -89,7 +89,7 @@ def _get_debug_str():
    debug_str += f" alu_fun: ALU_{alu_fun}"
    return debug_str
 
-ALL_PRINT_ON = False
+ALL_PRINT_ON = True
 ALL_PRINT_OFF = False
 if ALL_PRINT_ON:
    PRINT_DEBUG_ON = True
@@ -258,7 +258,6 @@ for data_path in data_paths:
    # generate system clocks until we reach a stopping condition
    # this is basically the run function from the last lab
    for t in itertools.count():
-      # if t > 44: sys.exit()
       # RESET the PC register
       if startup:
           if PRINT_INSTR_ON: print(f"{t:20d}:", display())
@@ -386,9 +385,6 @@ for data_path in data_paths:
       )
 
       full_display()
-
-      # if instr.get_rd() != None:
-         # print(f"0x{RegFile.reg_vals[instr.get_rd()]:x}")
 
       # then handle ECALL
       if _handle_ecall(): break # if instr was ecall and dictates processor
