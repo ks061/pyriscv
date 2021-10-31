@@ -27,7 +27,7 @@ class Elf():
 
         if not self.quiet:
             print(f"Loading ELF binary \"{self.elffilename}\".")
-            print(f'{self.ef.get_machine_arch()} {self.byteorder} endian {self.ef["e_ident"]["EI_CLASS"]} has {self.ef.num_segments()} segments')
+##            print(f'{self.ef.get_machine_arch()} {self.byteorder} endian {self.ef["e_ident"]["EI_CLASS"]} has {self.ef.num_segments()} segments')
         
         if self.ef['e_ident']['EI_CLASS'] == 'ELFCLASS64':
             self.bytes_per_word = 8
@@ -46,25 +46,26 @@ class Elf():
         return self.ef["e_entry"]
 
     def segments(self):
-        if not self.quiet:
-            print( '  --- SEGMENTS ---')
+##        if not self.quiet:
+##            print( '  --- SEGMENTS ---')
         for idx, segment in enumerate(self.ef.iter_segments()):
             d = segment.data()
-            if not self.quiet:
-                print(f'    {idx}: {segment["p_type"].ljust(8)} '
-                    f'@{segment["p_vaddr"]:08x} '
-                    f'size = {segment["p_memsz"]:4x}, '
-                    f'data = {len(d):4x}')
+##            if not self.quiet:
+##                print(f'    {idx}: {segment["p_type"].ljust(8)} '
+##                    f'@{segment["p_vaddr"]:08x} '
+##                    f'size = {segment["p_memsz"]:4x}, '
+##                    f'data = {len(d):4x}')
             yield segment["p_vaddr"], segment["p_memsz"], d
 
     def sections(self):
+        pass
         # print( '  --- SECTIONS ---')
-        for idx, section in enumerate(self.ef.iter_sections()):
+        # for idx, section in enumerate(self.ef.iter_sections()):
             # print(f'    {idx}: {section.name} {section["sh_type"]}',
             #         hex(section["sh_addr"]), 
             #         hex(section["sh_offset"]),
             #         hex(section["sh_size"]))
-            yield section["sh_addr"], section["sh_size"], section.data()
+            # yield section["sh_addr"], section["sh_size"], section.data()
             
     def __exit__(self, *args):
         self.f.close()
@@ -101,11 +102,11 @@ def load_elf(elffile, stack_size = 64 * 2**10, quiet = False):
         count = stack_size,
         byteorder = sys_mem.byteorder,
         word_size = 4)
-    if not quiet:
-        print(f"Created system memory in range {sys_mem.begin_addr():08x}:{sys_mem.end_addr():08x}")                
-        print( "Segments:\n" + str(sys_mem))
-        print(f"Total allocated system memory is {len(sys_mem) / 1024:4.1f} kilobytes.")
-        print("-"*60)
+##    if not quiet:
+##        print(f"Created system memory in range {sys_mem.begin_addr():08x}:{sys_mem.end_addr():08x}")                
+##        print( "Segments:\n" + str(sys_mem))
+##        print(f"Total allocated system memory is {len(sys_mem) / 1024:4.1f} kilobytes.")
+##        print("-"*60)
 
 
     return sys_mem, symbols

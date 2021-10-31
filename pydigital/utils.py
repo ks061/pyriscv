@@ -72,7 +72,7 @@ def as_twos_comp(val):
     if val == None:
         return None
     if val >= 0:
-        return val# & 0x7fffffff
+        return val #& 0x7fffffff
     else:
         return val & 0xffffffff
 

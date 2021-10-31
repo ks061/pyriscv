@@ -239,7 +239,7 @@ class Instruction():
                 if self._get_instr_name_equivalence(["ECALL"]):
                     return str_out
                 if self._get_instr_name_equivalence(["ADD", "OR", "SLL", 
-                                                     "SUB", "XOR"]):
+                                                     "SUB", "XOR", "AND"]):
                     return str_out + regNumToName(self._rd) + "," +\
                            regNumToName(self._rs1) + "," +\
                            regNumToName(self._rs2)

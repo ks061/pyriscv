@@ -60,7 +60,7 @@ class RegFile:
             if wd == -1 or wd == None:
                 return
             if en == True:
-                RegFile.reg_vals[wa] = wd
+                RegFile.reg_vals[wa] = wd & 0xffffffff
 	
 	def display():
                 out_str = ""
@@ -75,7 +75,7 @@ class RegFile:
                                 elif reg_num == 0x1:
                                     out_val = RegFile.reg_vals[reg_num]
                                     if out_val == 0: out_str += f" {out_val:08x}"
-                                    else: out_str += f"+{out_val:08x}" 
+                                    else: out_str += f"+{out_val:08x}"
                                 else:
                                     out_val = sextend(RegFile.reg_vals[reg_num],32)
                                     if out_val == 0: out_str += f" {out_val:08x}"

@@ -89,26 +89,62 @@ def _get_debug_str():
    debug_str += f" alu_fun: ALU_{alu_fun}"
    return debug_str
 
-def full_display():
-   # print one line w/ instruction
-   print(f"{t:20d}:", display())
-   
-   # then display debug line
-   #print(_get_debug_str())
-   #print()
+ALL_PRINT_ON = False
+ALL_PRINT_OFF = False
+if ALL_PRINT_ON:
+   PRINT_DEBUG_ON = True
+   PRINT_ECALL_ON = True
+   PRINT_FINAL_REG_ON = True
+   PRINT_FUNC_ON = True
+   PRINT_INSTR_ON = True
+   PRINT_LINUX_SYSCALL_ON = True
+   PRINT_REG_ON = True
+   PRINT_SYSCALL_ON = True
+elif ALL_PRINT_OFF:
+   PRINT_DEBUG_ON = False
+   PRINT_ECALL_ON = False
+   PRINT_FINAL_REG_ON = False
+   PRINT_FUNC_ON = False
+   PRINT_INSTR_ON = False
+   PRINT_LINUX_SYSCALL_ON = False
+   PRINT_REG_ON = False
+   PRINT_SYSCALL_ON = False
+else:
+   # customize
+   PRINT_DEBUG_ON = False
+   PRINT_ECALL_ON = False
+   PRINT_FINAL_REG_ON = False
+   PRINT_FUNC_ON = False
+   PRINT_INSTR_ON = False
+   PRINT_LINUX_SYSCALL_ON = True
+   PRINT_REG_ON = False
+   PRINT_SYSCALL_ON = False
 
-   # then display regs
-   #RegFile.display()
+
+def full_display():
+   if PRINT_INSTR_ON:
+       # print one line w/ instruction
+       print(f"{t:20d}:", display())
+
+   if PRINT_DEBUG_ON:
+       # then display debug line
+       print(_get_debug_str())
+       print()
+       
+   if PRINT_REG_ON:
+       # then display regs
+       RegFile.display()
 
 def _handle_ecall():
    if instr._mnemonic.upper() == "ECALL":
        if RegFile.reg_vals[10] == 0:
-           print("ECALL(0): HALT")
+           if PRINT_ECALL_ON: print("ECALL(0): HALT")
            return True # if returns True, processor must stop
        if RegFile.reg_vals[10] == 1:
-           print("ECALL(" + str(RegFile.reg_vals[10]) + "): " + str(RegFile.reg_vals[11]))
+           if PRINT_ECALL_ON: print("ECALL(" + str(RegFile.reg_vals[10]) +\
+                                    "): " + str(RegFile.reg_vals[11]))
        if RegFile.reg_vals[10] == 10:
-           print("ECALL(10): EXIT")
+           if PRINT_ECALL_ON:print("ECALL(10): EXIT")
            return True
    return False
 
@@ -118,16 +154,6 @@ def _raise_jalr_pc_sel_excep():
 
 def _raise_excep_pc_sel_excep():
     raise Exception("exception pc selection not implemented.")
-
-data_path = None
-if len(sys.argv) < 2: data_path = 'riscv_isa/programs/return'
-else: data_path = sys.argv[1]
-print(data_path)
-elf_load_data = load_elf(data_path)
-elf_imem = elf_load_data[0]
-#elf_dmem = Memory(elf_load_data[0])
-sym_table = elf_load_data[1]
-imem = elf_imem
 
 # mux setup
 pc_sel_mux = make_mux(
@@ -142,19 +168,8 @@ op1sel_mux = make_mux(RegFile.get_rs1, UType.get_imm)
 op2sel_mux = make_mux(RegFile.get_rs2, SType.get_imm, IType.get_imm, PC.out)
 
 WORD_SIZE_BITS = 32
-WORD_SIZE_BYTES = 4 # 2 binary places right shift to
+WORD_SIZE_BYTES = int(WORD_SIZE_BITS / 8) # 2 binary places right shift to
                     # go from byte address to  word address
-
-_mem_seg = MemorySegment(
-    begin_addr = 0xE0000,
-    count = (0xEFFFF - 0xE0000 + 1) >> 2,
-    word_size = WORD_SIZE_BYTES
-)
-
-#_mem = Memory(segment=elf_imem)
-#data_mem = DataMem.init(_mem)
-data_mem = DataMem.init(Memory(elf_imem))
- 
 wb_sel_mux = make_mux(DataMem.get_read_data, # non-implemented input;
                                   # mux index reserved
                       lambda: ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
@@ -163,13 +178,7 @@ wb_sel_mux = make_mux(DataMem.get_read_data, # non-implemented input;
                       lambda: PC.out()+4,
                       lambda: -1) # not implemented; placeholder      
 
-def _print_func_header(addr, reset=False):
-    if reset: name = "reset"
-    else: 
-        name = "func not found" # if not found at end of this for loop
-        for key, value in sym_table.items():
-            if value == addr: name = key
-    print(f"------------------------------<       {name}        >------------------------------")
+data_mem = None
 
 # handle syscall
 def _handle_syscall():
@@ -183,9 +192,10 @@ def _handle_syscall():
                       ControlSignals.get_alufun()
               ) == sym_table["tohost"] + 4:
        if (val & 0x1) == 0x1:
-           print(f"SYSCALL: exit ({val>>1})")
-           print("Final register values")
-           RegFile.display()
+           if PRINT_SYSCALL_ON: print(f"SYSCALL: exit ({val>>1})")
+           if PRINT_FINAL_REG_ON:
+               print("Final register values")
+               RegFile.display()
            sys.exit(val>>1)
        else:
           try:
@@ -200,149 +210,198 @@ def _handle_syscall():
           arg1 = DataMem.get_read_data()
           DataMem.read(val+24, byte_count = 8, signed = True)
           arg2 = DataMem.get_read_data()
-          #print(f"SYSCALL: printf ({val>>1})")
-          print(DataMem._mem.mem[arg1:arg1+arg2].decode("ASCII"), end="")
+          if PRINT_SYSCALL_ON: print(DataMem._mem.mem[arg1:arg1+arg2].decode("ASCII"), end="")
           DataMem._mem.mem[sym_table['fromhost']] = 1
-# init other vars for processor loop
-startup = True
-instr = None
 
-# generate system clocks until we reach a stopping condition
-# this is basically the run function from the last lab
-for t in itertools.count():
-
-   # RESET the PC register
-   if startup:
-       print(f"{t:20d}:", display())
-       startup=False 
-       PC.reset(sym_table["_start"] - 4)
-       _print_func_header(addr=None, reset=True)
-       #RegFile.clock(2, 0xEFFFF, True)
-       continue
-   else:
-       # select PC
-       if PC.out() == None:
-           PC.reset(sym_table["_start"])
-           continue 
-       else:
-           PC.clock(pc_sel_mux(ControlSignals.get_pc_sel()))
+def _handle_linux_syscall():
+   if RegFile.reg_vals[17] != 93: return False
+   ret_code = RegFile.reg_vals[10]
+   
+   if not PRINT_LINUX_SYSCALL_ON: return False
+   if ret_code == None: return False
+   if ret_code & 0x1 != 0:
+       print(f"TEST #0x{ret_code>>1:x} FAIL")
+       sys.exit()
  
-       if imem[PC.out()] == 0:
-           print("Done -- end of program.")
-           break
+def _print_func_header(addr, reset=False):
+    if reset: name = "reset"
+    else: 
+        name = "func not found" # if not found at end of this for loop
+        for key, value in sym_table.items():
+            if value == addr: name = key
+    if PRINT_FUNC_ON: print(f"------------------------------<       {name}        >------------------------------")
+
+data_paths = []
+if len(sys.argv) < 2: data_paths.append('riscv_isa/programs/return')
+else: 
+    for i in range(len(sys.argv)-1):
+        data_paths.append(sys.argv[i+1])
+
+for data_path in data_paths:
+   elf_load_data = load_elf(data_path)
+   elf_imem = elf_load_data[0]
+   sym_table = elf_load_data[1]
+   imem = elf_imem
+
+   _mem_seg = MemorySegment(
+      begin_addr = 0xE0000,
+      count = (0xEFFFF - 0xE0000 + 1) >> 2,
+      word_size = WORD_SIZE_BYTES
+   )
+
+   data_mem = DataMem.init(Memory(elf_imem))
+
+   # init other vars for processor loop
+   startup = True
+   instr = None
+
+   # generate system clocks until we reach a stopping condition
+   # this is basically the run function from the last lab
+   for t in itertools.count():
+      # if t > 44: sys.exit()
+      # RESET the PC register
+      if startup:
+          if PRINT_INSTR_ON: print(f"{t:20d}:", display())
+          startup=False 
+          PC.reset(sym_table["_start"] - 4)
+          _print_func_header(addr=None, reset=True)
+          continue
+      else:
+          # select PC
+          if PC.out() == None:
+              PC.reset(sym_table["_start"])
+              continue 
+          else:
+              PC.clock(pc_sel_mux(ControlSignals.get_pc_sel()))
+
+          if imem[PC.out()] == 0:
+              print("Done -- end of program.")
+              break
+      
+      # access instruction memory
+      if instr != None:
+          if instr.get_mnemonic().upper() == "JAL":
+              _print_func_header(PC.out()) 
+      if imem[PC.out()] == 0x30200073: # mret = nop; not implemented in standard RISC-V ISA
+         if PRINT_INSTR_ON:
+            print(f"{t:20d}: mret instruction; ")
+            print("nop b/c not implemented in standard RISC-V ISA") 
+         ControlSignals.set_pc_sel(0)
+         continue
+      instr = Instruction(imem[PC.out()], PC.out())
+      if instr.is_csr():
+         if PRINT_INSTR_ON: print(f"{t:20d}:", display())
+         ControlSignals.set_pc_sel(0)
+         continue
+      if instr._get_instr_name_equivalence(["FENCE"]):
+         if PRINT_INSTR_ON: print(f"{t:20d}:", display())
+         ControlSignals.set_pc_sel(0)
+         continue
+      # set control signals
+      ControlSignals.set_instr_name(instr.get_mnemonic().lower())
+
+      # process imm combinational blocks
+      BranchTargGen.set_branch(
+          PC.out(),
+          (instr.get_val() >> 7) & 0x1f,
+          (instr.get_val() >> 25) & 0x7f
+      )
+      JumpTargGen.set_jump(
+          PC.out(),
+          (instr.get_val() >> 12) & 0xfffff
+      ) 
+      IType.set_imm(instr.get_val() >> 20)
+      SType.set_imm(
+      ((instr.get_val() >> 25) << 5) +
+      ((instr.get_val() >> 7) & 0x1f)
+      )
+      UType.set_imm(instr.get_val() >> 12)
+
+      # update instr imm from imm combo block
+      # handling imm's for current instr type   
+      instr.update_imm()
+
+      # regfile reading (combinational block)
+      rs1_index = instr.get_rs1() 
+      rs2_index = instr.get_rs2()
+      rd_index = instr.get_rd()
+      RegFile.read(rs1_index, rs2_index)
+
+      BranchCondGen.set_branch_conds(
+          RegFile.get_rs1(),
+          RegFile.get_rs2()
+      )
+
+      # if previous instuction was a branch 
+      # instruction, then see if branch was taken
+      if ((instr._get_instr_name_equivalence(["BEQ"]) and
+         BranchCondGen.get_br_eq()) or
+         (instr._get_instr_name_equivalence(["BNE"]) and
+         not BranchCondGen.get_br_eq()) or
+         (instr._get_instr_name_equivalence(["BLT"]) and
+         BranchCondGen.get_br_lt()) or
+         (instr._get_instr_name_equivalence(["BGE"]) and
+         not BranchCondGen.get_br_lt()) or
+         (instr._get_instr_name_equivalence(["BLTU"]) and
+         BranchCondGen.get_br_ltu()) or
+         (instr._get_instr_name_equivalence(["BGEU"]) and
+         not BranchCondGen.get_br_ltu())):  
+          ControlSignals.set_pc_sel(2)
+          full_display()
+          continue
+      elif instr._type == instrTypes.UJ:
+          ControlSignals.set_pc_sel(3)
+      elif instr._get_instr_name_equivalence(["JALR"]):
+          ControlSignals.set_pc_sel(1)
+      else:
+          ControlSignals.set_pc_sel(0)
+
+
+      # after IType calculated
+      JumpRegTargGen.set_jalr(RegFile.get_rs1(), IType.get_imm())
+      
+      # select op1 and op2
+      op1=op1sel_mux(ControlSignals.get_op1sel())
+      op2=op2sel_mux(ControlSignals.get_op2sel())
+
+      if instr._get_instr_name_equivalence(["LBU", "LHU", "LWU"]):
+          signed = False
+      else: signed = True
+      DataMem.exec(
+          addr = ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
+                         op2sel_mux(ControlSignals.get_op2sel()), 
+                         ControlSignals.get_alufun()
+                 ),
+          wdata = RegFile.get_rs2(), 
+          mem_rw = ControlSignals.get_mem_rw(),
+          mem_val = ControlSignals.get_mem_val(),
+          signed = signed
+      )
+
+      # regfile writing
+      RegFile.clock(
+          wa=instr.get_rd(), 
+          wd=wb_sel_mux(ControlSignals.get_wb_sel()),
+          en=ControlSignals.get_rf_wen()
+      )
+
+      full_display()
+
+      # if instr.get_rd() != None:
+         # print(f"0x{RegFile.reg_vals[instr.get_rd()]:x}")
+
+      # then handle ECALL
+      if _handle_ecall(): break # if instr was ecall and dictates processor
+                                # stopping, i.e. halt or exit, break out of loop
+
+      # then handle SYSCALL   
+      if _handle_syscall(): break # break for exit if specified by syscall
+
+      # then handle Linux SYSCALL
+      if _handle_linux_syscall(): break
+
+   if PRINT_FINAL_REG_ON:
+      print("Final register values")
+      RegFile.display()
    
-   # access instruction memory
-   
-#    DataMem.exec(addr = sym_table["_start"], 
-#                 wdata = None, 
-#                 mem_rw = 0, 
-#                 mem_val = 4)
-   if instr != None:
-       if instr.get_mnemonic().upper() == "JAL":
-           _print_func_header(PC.out()) 
-   instr = Instruction(imem[PC.out()], PC.out())
-   if instr.is_csr():
-       print(f"{t:20d}:", display())
-       continue
-   if instr._get_instr_name_equivalence(["FENCE"]):
-      print(f"{t:20d}:", display())
-      continue
- 
-   # set control signals
-   ControlSignals.set_instr_name(instr.get_mnemonic().lower())
-
-   # process imm combinational blocks
-   BranchTargGen.set_branch(
-       PC.out(),
-       (instr.get_val() >> 7) & 0x1f,
-       (instr.get_val() >> 25) & 0x7f
-   )
-   JumpTargGen.set_jump(
-       PC.out(),
-       (instr.get_val() >> 12) & 0xfffff
-   ) 
-   IType.set_imm(instr.get_val() >> 20)
-   SType.set_imm(
-   ((instr.get_val() >> 25) << 5) +
-   ((instr.get_val() >> 7) & 0x1f)
-   )
-   UType.set_imm(instr.get_val() >> 12)
-
-   # update instr imm from imm combo block
-   # handling imm's for current instr type   
-   instr.update_imm()
-
-   # regfile reading (combinational block)
-   rs1_index = instr.get_rs1() 
-   rs2_index = instr.get_rs2()
-   rd_index = instr.get_rd()
-   RegFile.read(rs1_index, rs2_index)
-
-   BranchCondGen.set_branch_conds(
-       RegFile.get_rs1(),
-       RegFile.get_rs2()
-   )
-
-   # if previous instuction was a branch 
-   # instruction, then see if branch was taken
-   if ((instr._get_instr_name_equivalence(["BEQ"]) and
-      BranchCondGen.get_br_eq()) or
-      (instr._get_instr_name_equivalence(["BNE"]) and
-      not BranchCondGen.get_br_eq()) or
-      (instr._get_instr_name_equivalence(["BLT"]) and
-      BranchCondGen.get_br_lt()) or
-      (instr._get_instr_name_equivalence(["BGE"]) and
-      not BranchCondGen.get_br_lt()) or
-      (instr._get_instr_name_equivalence(["BLTU"]) and
-      BranchCondGen.get_br_ltu()) or
-      (instr._get_instr_name_equivalence(["BGEU"]) and
-      not BranchCondGen.get_br_ltu())):  
-       ControlSignals.set_pc_sel(2)
-       full_display()
-       continue
-   elif instr._type == instrTypes.UJ:
-       ControlSignals.set_pc_sel(3)
-   elif instr._get_instr_name_equivalence(["JALR"]):
-       ControlSignals.set_pc_sel(1)
-   else:
-       ControlSignals.set_pc_sel(0)
-
-   # after IType calculated
-   JumpRegTargGen.set_jalr(RegFile.get_rs1(), IType.get_imm())
-   
-   # select op1 and op2
-   op1=op1sel_mux(ControlSignals.get_op1sel())
-   op2=op2sel_mux(ControlSignals.get_op2sel())
-
-   if instr._get_instr_name_equivalence(["LBU", "LHU", "LWU"]):
-       signed = False
-   else: signed = True
-   DataMem.exec(
-       addr = ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
-                      op2sel_mux(ControlSignals.get_op2sel()), 
-                      ControlSignals.get_alufun()
-              ),
-       wdata = RegFile.get_rs2(), 
-       mem_rw = ControlSignals.get_mem_rw(),
-       mem_val = ControlSignals.get_mem_val(),
-       signed = signed
-   )
-
-   # regfile writing
-   RegFile.clock(
-       wa=instr.get_rd(), 
-       wd=wb_sel_mux(ControlSignals.get_wb_sel()),
-       en=ControlSignals.get_rf_wen()
-   )
-
-   full_display()
-
-   # then handle ECALL
-   if _handle_ecall(): break # if instr was ecall and dictates processor
-                             # stopping, i.e. halt or exit, break out of loop
-
-   # then handle SYSCALL   
-   if _handle_syscall(): break # break for exit if specified by syscall
-
-print("Final register values")
-RegFile.display()
+   print("TEST PASS")

@@ -17,9 +17,9 @@ class ControlSignals:
 
     CSV_FILENAME_CTRL_SIGNALS = "data/decoder_ctrl_signals.csv"
     
-    ROW_INDEX_HEADER = 1 
-    ROW_INDEX_INSTR_BEGIN = 2
-    ROW_INDEX_INSTR_END = 39
+    ROW_INDEX_HEADER = 1
+
+    ROW_INDEX_START = 2
     
     COL_INDEX_INSTRUCTION = 0
 
@@ -62,9 +62,9 @@ class ControlSignals:
 
         ControlSignals._set_high_impedance_to_neg_one(rows)
         
-        for row_index in range(ControlSignals.ROW_INDEX_INSTR_BEGIN,
-                               ControlSignals.ROW_INDEX_INSTR_END+1):
+        for row_index in range(ControlSignals.ROW_INDEX_START,len(rows)):
             row = rows[row_index]
+            if row[0] == "": break
             ControlSignals.instr_ctrl_signals[row[ControlSignals.COL_INDEX_INSTRUCTION].split(" ")[0].lower()] = {
                 ControlSignals.COL_NAME_PC_SEL:row[ControlSignals.COL_INDEX_PC_SEL],
                 ControlSignals.COL_NAME_ALUFUN:row[ControlSignals.COL_INDEX_ALUFUN],
