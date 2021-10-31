@@ -10,6 +10,7 @@ the RISC-V Sodor 1-Stage processor.
 
 # Imports
 from pydigital.memory import MemorySegment, Memory
+from pydigital.utils import as_twos_comp, sextend
 
 """
 Static class representing the data memory
@@ -26,21 +27,22 @@ class DataMem:
     def init(mem):
         DataMem._mem = mem
 
-    def exec(addr, wdata, mem_rw, mem_val = 4, byte_count = 4, signed = True):
+    def exec(addr, wdata, mem_rw, mem_val = 4, signed = True):
+        addr = as_twos_comp(addr)
         if mem_val not in [1, 2, 4, 8]: return        
         if mem_rw == 0: DataMem.read(addr,
-                                     byte_count=byte_count,
+                                     byte_count=mem_val,
                                      signed=signed)
         else: DataMem.clock(addr,
                             wdata,
                             mem_rw,
-                            byte_count=byte_count)
+                            byte_count=mem_val)
 
     def read(addr, byte_count, signed):
         try: 
              DataMem._read_data = DataMem._mem.out(addr,
                                                    byte_count=byte_count,
-                                                   signed=False)
+                                                   signed=signed)
         except IndexError: # memory segment not found
                            # probably b/c invalid addr
                            # in turn b/c wasn't an lw 
@@ -51,6 +53,7 @@ class DataMem:
               wdata,
               mem_rw,
               byte_count):
+        wdata = as_twos_comp(wdata)
         DataMem._mem.clock(addr, wdata, mem_rw, byte_count=byte_count)
 
 if __name__ == "__main__":

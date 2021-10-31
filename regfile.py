@@ -57,7 +57,7 @@ class RegFile:
 	def clock(wa, wd, en):    
             if wa == None or wa == 0:
                 return
-            if wd == -1 or wd == None:
+            if wd == None:
                 return
             if en == True:
                 RegFile.reg_vals[wa] = wd & 0xffffffff

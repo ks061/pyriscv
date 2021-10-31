@@ -109,7 +109,8 @@ class ALU:
 
     def _sra(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
-        return op1 >> op2
+        print("SRA ALERT")
+        return sextend(op1) >> op2
 
     def _sub(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
@@ -135,8 +136,7 @@ class ALU:
     def _sll(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
         out = op1 << op2
-        if (out >> 31 == 0x1): return -out
-        else: return out
+        return out
 
     def _or(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)

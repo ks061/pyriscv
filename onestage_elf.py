@@ -22,13 +22,44 @@ from jump_reg_targ_gen import JumpRegTargGen
 from mux import make_mux 
 from pydigital.memory import readmemh, Memory, MemorySegment
 from pydigital.register import Register
-from pydigital.utils import sextend
+from pydigital.utils import sextend, as_twos_comp
 from regfile import RegFile
 from riscv_isa.isa import Instruction, regNumToName
 from riscv_isa.instr_codes import instrTypes
 from stype import SType
 import sys
 from utype import UType
+
+ALL_PRINT_ON = False
+ALL_PRINT_OFF = False
+if ALL_PRINT_ON:
+   PRINT_DEBUG_ON = True
+   PRINT_ECALL_ON = True
+   PRINT_FINAL_REG_ON = True
+   PRINT_FUNC_ON = True
+   PRINT_INSTR_ON = True
+   PRINT_LINUX_SYSCALL_ON = True
+   PRINT_REG_ON = True
+   PRINT_SYSCALL_ON = True
+elif ALL_PRINT_OFF:
+   PRINT_DEBUG_ON = False
+   PRINT_ECALL_ON = False
+   PRINT_FINAL_REG_ON = False
+   PRINT_FUNC_ON = False
+   PRINT_INSTR_ON = False
+   PRINT_LINUX_SYSCALL_ON = False
+   PRINT_REG_ON = False
+   PRINT_SYSCALL_ON = False
+else:
+   # customize
+   PRINT_DEBUG_ON = False
+   PRINT_ECALL_ON = True
+   PRINT_FINAL_REG_ON = False
+   PRINT_FUNC_ON = False
+   PRINT_INSTR_ON = False
+   PRINT_LINUX_SYSCALL_ON = True
+   PRINT_REG_ON = False
+   PRINT_SYSCALL_ON = True
 
 # the PC register
 PC = Register()
@@ -89,38 +120,6 @@ def _get_debug_str():
    debug_str += f" alu_fun: ALU_{alu_fun}"
    return debug_str
 
-ALL_PRINT_ON = True
-ALL_PRINT_OFF = False
-if ALL_PRINT_ON:
-   PRINT_DEBUG_ON = True
-   PRINT_ECALL_ON = True
-   PRINT_FINAL_REG_ON = True
-   PRINT_FUNC_ON = True
-   PRINT_INSTR_ON = True
-   PRINT_LINUX_SYSCALL_ON = True
-   PRINT_REG_ON = True
-   PRINT_SYSCALL_ON = True
-elif ALL_PRINT_OFF:
-   PRINT_DEBUG_ON = False
-   PRINT_ECALL_ON = False
-   PRINT_FINAL_REG_ON = False
-   PRINT_FUNC_ON = False
-   PRINT_INSTR_ON = False
-   PRINT_LINUX_SYSCALL_ON = False
-   PRINT_REG_ON = False
-   PRINT_SYSCALL_ON = False
-else:
-   # customize
-   PRINT_DEBUG_ON = False
-   PRINT_ECALL_ON = False
-   PRINT_FINAL_REG_ON = False
-   PRINT_FUNC_ON = False
-   PRINT_INSTR_ON = False
-   PRINT_LINUX_SYSCALL_ON = True
-   PRINT_REG_ON = False
-   PRINT_SYSCALL_ON = False
-
-
 def full_display():
    if PRINT_INSTR_ON:
        # print one line w/ instruction
@@ -180,17 +179,23 @@ wb_sel_mux = make_mux(DataMem.get_read_data, # non-implemented input;
 
 data_mem = None
 
+sym_table = None
 # handle syscall
 def _handle_syscall():
     if ControlSignals.get_mem_rw() == 0: return False
     if "tohost" not in sym_table: return False
     # val = imem[sym_table["tohost"]]
-    DataMem.read(sym_table["tohost"], byte_count = 8, signed=True)
-    val = DataMem.get_read_data()
-    if ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
+    DataMem.read(sym_table["tohost"], byte_count = 4, signed=False)
+    val_lower = DataMem.get_read_data()
+    DataMem.read(sym_table["tohost"]+4, byte_count = 4, signed=False)
+    val_upper = DataMem.get_read_data()
+    val = (val_upper << 32) + val_lower
+    dest_addr = ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
                       op2sel_mux(ControlSignals.get_op2sel()), 
                       ControlSignals.get_alufun()
-              ) == sym_table["tohost"] + 4:
+              )
+    dest_addr = as_twos_comp(dest_addr)
+    if dest_addr == sym_table["tohost"]+4:
        if (val & 0x1) == 0x1:
            if PRINT_SYSCALL_ON: print(f"SYSCALL: exit ({val>>1})")
            if PRINT_FINAL_REG_ON:
@@ -216,11 +221,9 @@ def _handle_syscall():
 def _handle_linux_syscall():
    if RegFile.reg_vals[17] != 93: return False
    ret_code = RegFile.reg_vals[10]
-   
-   if not PRINT_LINUX_SYSCALL_ON: return False
    if ret_code == None: return False
    if ret_code & 0x1 != 0:
-       print(f"TEST #0x{ret_code>>1:x} FAIL")
+       if PRINT_LINUX_SYSCALL_ON: print(f"TEST #0x{ret_code>>1:x} FAIL")
        sys.exit()
  
 def _print_func_header(addr, reset=False):
@@ -319,6 +322,7 @@ for data_path in data_paths:
       # update instr imm from imm combo block
       # handling imm's for current instr type   
       instr.update_imm()
+      # if instr._type == instrTypes.U: print(f"{instr._imm:x}")
 
       # regfile reading (combinational block)
       rs1_index = instr.get_rs1() 
@@ -364,8 +368,9 @@ for data_path in data_paths:
       op2=op2sel_mux(ControlSignals.get_op2sel())
 
       if instr._get_instr_name_equivalence(["LBU", "LHU", "LWU"]):
-          signed = False
-      else: signed = True
+         signed = False
+      else:
+         signed = True
       DataMem.exec(
           addr = ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
                          op2sel_mux(ControlSignals.get_op2sel()), 
@@ -400,4 +405,4 @@ for data_path in data_paths:
       print("Final register values")
       RegFile.display()
    
-   print("TEST PASS")
+   if PRINT_LINUX_SYSCALL_ON: print("TEST PASS")
