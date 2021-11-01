@@ -410,7 +410,7 @@ for data_path in data_paths:
       if _handle_syscall(): break # break for exit if specified by syscall
 
       # then handle Linux SYSCALL
-      if _handle_linux_syscall(): break
+      if instr.get_mnemonic() == 'ecall' and _handle_linux_syscall(): break
 
    if PRINT_FINAL_REG_ON:
       print("Final register values")
