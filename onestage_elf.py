@@ -164,7 +164,7 @@ pc_sel_mux = make_mux(
 )
 
 op1sel_mux = make_mux(RegFile.get_rs1, UType.get_imm)
-op2sel_mux = make_mux(RegFile.get_rs2, SType.get_imm, IType.get_imm, PC.out)
+op2sel_mux = make_mux(RegFile.get_rs2, SType.get_imm, IType.get_imm, lambda : sextend(pc_val))
 
 WORD_SIZE_BITS = 32
 WORD_SIZE_BYTES = int(WORD_SIZE_BITS / 8) # 2 binary places right shift to
@@ -172,7 +172,7 @@ WORD_SIZE_BYTES = int(WORD_SIZE_BITS / 8) # 2 binary places right shift to
 wb_sel_mux = make_mux(DataMem.get_read_data, # non-implemented input;
                                   # mux index reserved
                       lambda: alu_out,
-                      lambda: PC.out()+4,
+                      lambda: sextend(pc_val+4),
                       lambda: -1) # not implemented; placeholder      
 
 data_mem = None
