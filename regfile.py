@@ -60,7 +60,7 @@ class RegFile:
             if wd == None:
                 return
             if en == True:
-                RegFile.reg_vals[wa] = wd & 0xffffffff
+                RegFile.reg_vals[wa] = wd# sextend(as_twos_comp(wd) & 0xffffffff)
 	
 	def display():
                 out_str = ""
@@ -72,15 +72,17 @@ class RegFile:
                                            ": "
                                 if RegFile.reg_vals[reg_num] == None:
                                     out_str += "xxxxxxxx"
-                                elif reg_num == 0x1:
-                                    out_val = RegFile.reg_vals[reg_num]
-                                    if out_val == 0: out_str += f" {out_val:08x}"
-                                    else: out_str += f"+{out_val:08x}"
                                 else:
-                                    out_val = sextend(RegFile.reg_vals[reg_num],32)
-                                    if out_val == 0: out_str += f" {out_val:08x}"
-                                    elif out_val > 0: out_str += f"+{out_val:08x}"
-                                    else: out_str += f"{out_val:09x}"
+                                    out_str += f"{RegFile.reg_vals[reg_num]: 09x}"
+                                # elif reg_num == 0x1:
+                                #     out_val = RegFile.reg_vals[reg_num]
+                                #     if out_val == 0: out_str += f" {out_val:08x}"
+                                #     else: out_str += f"+{out_val:08x}"
+                                # else:
+                                #     out_val = sextend(RegFile.reg_vals[reg_num],32)
+                                #     if out_val == 0: out_str += f" {out_val:08x}"
+                                #     elif out_val > 0: out_str += f"+{out_val:08x}"
+                                #     else: out_str += f"{out_val:09x}"
                                 reg_num += 1
                         out_str += "\n"
                 print(out_str)	

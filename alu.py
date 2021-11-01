@@ -139,7 +139,9 @@ class ALU:
 	
     def _sll(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
-        out = sextend(as_twos_comp(op1 << op2) & 0xffffffff)
+        # print(f"Doing SLL 0x{op1: 08x} << {(0x1f & op2):d}")
+        out = sextend(as_twos_comp(op1 << (0x1f & op2)) & 0xffffffff)
+        # print(f"SLL RESULT {out: 08x}")
         return out
 
     def _or(op1, op2):
