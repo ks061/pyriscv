@@ -30,7 +30,7 @@ from stype import SType
 import sys
 from utype import UType
 
-ALL_PRINT_ON = True
+ALL_PRINT_ON = False
 ALL_PRINT_OFF = False
 if ALL_PRINT_ON:
    PRINT_DEBUG_ON = True
@@ -53,10 +53,10 @@ elif ALL_PRINT_OFF:
 else:
    # customize
    PRINT_DEBUG_ON = False
-   PRINT_ECALL_ON = True
+   PRINT_ECALL_ON = False
    PRINT_FINAL_REG_ON = False
    PRINT_FUNC_ON = False
-   PRINT_INSTR_ON = True
+   PRINT_INSTR_ON = False
    PRINT_LINUX_SYSCALL_ON = True
    PRINT_REG_ON = False
    PRINT_SYSCALL_ON = True
@@ -164,17 +164,15 @@ pc_sel_mux = make_mux(
 )
 
 op1sel_mux = make_mux(RegFile.get_rs1, UType.get_imm)
-op2sel_mux = make_mux(RegFile.get_rs2, SType.get_imm, IType.get_imm, PC.out)
+op2sel_mux = make_mux(RegFile.get_rs2, SType.get_imm, IType.get_imm, lambda : sextend(pc_val))
 
 WORD_SIZE_BITS = 32
 WORD_SIZE_BYTES = int(WORD_SIZE_BITS / 8) # 2 binary places right shift to
                     # go from byte address to  word address
 wb_sel_mux = make_mux(DataMem.get_read_data, # non-implemented input;
                                   # mux index reserved
-                      lambda: ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
-                              op2sel_mux(ControlSignals.get_op2sel()), 
-                              ControlSignals.get_alufun()),
-                      lambda: PC.out()+4,
+                      lambda: alu_out,
+                      lambda: sextend(pc_val+4),
                       lambda: -1) # not implemented; placeholder      
 
 data_mem = None
@@ -190,10 +188,12 @@ def _handle_syscall():
     DataMem.read(sym_table["tohost"]+4, byte_count = 4, signed=False)
     val_upper = DataMem.get_read_data()
     val = (val_upper << 32) + val_lower
-    dest_addr = ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
-                      op2sel_mux(ControlSignals.get_op2sel()), 
-                      ControlSignals.get_alufun()
-              )
+    # dest_addr = ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
+    #                   op2sel_mux(ControlSignals.get_op2sel()), 
+    #                   ControlSignals.get_alufun()
+    #           )
+    # stop computing ALU result, just do it ONCE and save the value.
+    dest_addr = alu_out
     dest_addr = as_twos_comp(dest_addr)
     if dest_addr == sym_table["tohost"]+4:
        if (val & 0x1) == 0x1:
@@ -227,12 +227,13 @@ def _handle_linux_syscall():
        sys.exit()
  
 def _print_func_header(addr, reset=False):
-    if reset: name = "reset"
-    else: 
-        name = "func not found" # if not found at end of this for loop
-        for key, value in sym_table.items():
-            if value == addr: name = key
-    if PRINT_FUNC_ON: print(f"------------------------------<       {name}        >------------------------------")
+    # if reset: name = "reset"
+    # else: 
+    #     name = "func not found" # if not found at end of this for loop
+    #     for key, value in sym_table.items():
+    #         if value == addr: name = key
+    
+    if PRINT_FUNC_ON and addr in sym_table: print(f"------------------------------<       {sym_table[addr]}        >------------------------------")
 
 data_paths = []
 if len(sys.argv) < 2: data_paths.append('riscv_isa/programs/return')
@@ -241,11 +242,12 @@ else:
         data_paths.append(sys.argv[i+1])
 
 for data_path in data_paths:
-   elf_load_data = load_elf(data_path)
+   elf_load_data = load_elf(data_path, quiet = not PRINT_DEBUG_ON)
    elf_imem = elf_load_data[0]
    sym_table = elf_load_data[1]
    imem = elf_imem
-
+   if not PRINT_DEBUG_ON:
+       print(f"Running {data_path}")
    _mem_seg = MemorySegment(
       begin_addr = 0xE0000,
       count = (0xEFFFF - 0xE0000 + 1) >> 2,
@@ -276,21 +278,25 @@ for data_path in data_paths:
           else:
               PC.clock(as_twos_comp(pc_sel_mux(ControlSignals.get_pc_sel())))
 
-          if imem[PC.out()] == 0:
+          pc_val = PC.out()
+
+          if imem[pc_val] == 0:
               print("Done -- end of program.")
               break
-      
+    #   if t > 37: break
       # access instruction memory
-      if instr != None:
-          if instr.get_mnemonic().upper() == "JAL":
-              _print_func_header(PC.out()) 
-      if imem[PC.out()] == 0x30200073: # mret = nop; not implemented in standard RISC-V ISA
+      #if instr != None:
+          #if instr.get_mnemonic().upper() == "JAL":          
+              #_print_func_header(PC.out()) 
+      if imem[pc_val] == 0x30200073: # mret = nop; not implemented in standard RISC-V ISA
          if PRINT_INSTR_ON:
             print(f"{t:20d}: mret instruction; ")
             print("nop b/c not implemented in standard RISC-V ISA") 
          ControlSignals.set_pc_sel(0)
          continue
-      instr = Instruction(imem[PC.out()], PC.out())
+      instr = Instruction(imem[pc_val], pc_val)
+
+      _print_func_header(pc_val)
       if instr.is_csr():
          if PRINT_INSTR_ON: print(f"{t:20d}:", display())
          ControlSignals.set_pc_sel(0)
@@ -317,7 +323,8 @@ for data_path in data_paths:
       ((instr.get_val() >> 25) << 5) +
       ((instr.get_val() >> 7) & 0x1f)
       )
-      UType.set_imm(instr.get_val() >> 12)
+      #UType.set_imm(instr.get_val() >> 12)
+      UType.set_imm(sextend(instr.get_val() & 0xfffff000))
 
       # update instr imm from imm combo block
       # handling imm's for current instr type   
@@ -337,6 +344,9 @@ for data_path in data_paths:
 
       # if previous instuction was a branch 
       # instruction, then see if branch was taken
+    #   print(f"==={instr._mnemonic}={BranchCondGen.get_br_lt()}===")
+
+      
       if ((instr._get_instr_name_equivalence(["BEQ"]) and
          BranchCondGen.get_br_eq()) or
          (instr._get_instr_name_equivalence(["BNE"]) and
@@ -367,25 +377,26 @@ for data_path in data_paths:
       op1=op1sel_mux(ControlSignals.get_op1sel())
       op2=op2sel_mux(ControlSignals.get_op2sel())
 
+      # compute alu output
+      alu_out = ALU.alu(op1,op2,ControlSignals.get_alufun())
+
       if instr._get_instr_name_equivalence(["LBU", "LHU", "LWU"]):
          signed = False
       else:
          signed = True
       DataMem.exec(
-          addr = ALU.alu(op1sel_mux(ControlSignals.get_op1sel()),
-                         op2sel_mux(ControlSignals.get_op2sel()), 
-                         ControlSignals.get_alufun()
-                 ),
+          addr = alu_out,
           wdata = RegFile.get_rs2(), 
           mem_rw = ControlSignals.get_mem_rw(),
           mem_val = ControlSignals.get_mem_val(),
           signed = signed
       )
-
+      wb_val = wb_sel_mux(ControlSignals.get_wb_sel())
+      #print(f"wb_val is {wb_val: 08x}")
       # regfile writing
       RegFile.clock(
           wa=instr.get_rd(), 
-          wd=wb_sel_mux(ControlSignals.get_wb_sel()),
+          wd=wb_val,
           en=ControlSignals.get_rf_wen()
       )
 
@@ -399,7 +410,7 @@ for data_path in data_paths:
       if _handle_syscall(): break # break for exit if specified by syscall
 
       # then handle Linux SYSCALL
-      if _handle_linux_syscall(): break
+      if instr.get_mnemonic() == 'ecall' and _handle_linux_syscall(): break
 
    if PRINT_FINAL_REG_ON:
       print("Final register values")
