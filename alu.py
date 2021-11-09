@@ -124,6 +124,7 @@ class ALU:
 
     def _srl(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
+        return as_twos_comp(op1) >> (0x1f & op2)
         if op2 == 0: return op1 # not changing underlying
 			       # value (result from op1)
         if op1 >= 0: return op1 >> op2 # if op1 pos, same as sra
