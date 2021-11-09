@@ -18,11 +18,14 @@ class CsrMemory():
         self.regs = defaultdict(int)
 
     def clock(self, csr, mnemonic, value, cycle):
+        cmd = None
         if mnemonic[-1] == "W": cmd = enums['csr_cmd']['CSR.W']
         if mnemonic[-1] == "C": cmd = enums['csr_cmd']['CSR.C']
         if mnemonic[-1] == "S": cmd = enums['csr_cmd']['CSR.S']
         if mnemonic[-1] == "I": cmd = enums['csr_cmd']['CSR.I']
 
+        if cmd is None:
+            raise Exception("non csr cmd")
         ret = None
         
         self.regs[0xb00] = cycle # update mcycle csr

@@ -239,14 +239,14 @@ class Instruction():
                                f"0x{self._imm:x}"
                 if self._get_instr_name_equivalence(["ECALL"]):
                     return str_out
-                if self._get_instr_name_equivalence(["ADD", "OR", "SLL", 
-                                                     "SUB", "XOR", "AND"]):
+                if self._get_instr_name_equivalence(["ADD", "OR", "SLL", "SRL",
+                                                     "SUB", "XOR", "AND", "SLTU", "SLT"]):
                     return str_out + regNumToName(self._rd) + "," +\
                            regNumToName(self._rs1) + "," +\
                            regNumToName(self._rs2)
                 if self._get_instr_name_equivalence(["ADDI", "ANDI", "ORI",
                                                      "SLTI", "SLLI", "JALR",
-                                                     "SRAI"]):
+                                                     "SRAI", "SRLI"]):
                     if self._get_instr_name_equivalence(["JALR"]) and\
                        self._rd == 0x0 and self._rs1 == 0x1: 
                         return "ret"
