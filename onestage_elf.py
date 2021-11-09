@@ -54,14 +54,14 @@ elif ALL_PRINT_OFF:
    PRINT_SYSCALL_ON = False
 else:
    # customize
-   PRINT_DEBUG_ON = True
-   PRINT_ECALL_ON = True
-   PRINT_FINAL_REG_ON = True
-   PRINT_FUNC_ON = True
-   PRINT_INSTR_ON = True
+   PRINT_DEBUG_ON = False
+   PRINT_ECALL_ON = False
+   PRINT_FINAL_REG_ON = False
+   PRINT_FUNC_ON = False
+   PRINT_INSTR_ON = False
    PRINT_LINUX_SYSCALL_ON = True
    PRINT_REG_ON = False
-   PRINT_SYSCALL_ON = True
+   PRINT_SYSCALL_ON = False
 
 # the PC register
 PC = Register()
@@ -241,7 +241,7 @@ csr_mem = CsrMemory()
 def _handle_csr():
     csr = (instr.val & 0xfff00000) >> 20
     mnemonic = instr.get_mnemonic()
-    print(mnemonic)
+    # print(mnemonic)
     rs1 = (instr.val & 0x000f8000) >> 15
     value = RegFile.reg_vals[rs1]
     cycle = t
@@ -267,7 +267,7 @@ global startup
 global instr
 global t
 global maXkcycles
-startup = True
+startup = None
 instr = None
 t = None
 maXkcycles = 0
@@ -275,7 +275,7 @@ maXkcycles = 0
 i = -1
 while i < len(data_paths)-1:
    i = i+1
-   print('DATA PATH IS', data_paths, i, len(data_paths))
+   #print('DATA PATH IS', data_paths, i, len(data_paths))
    data_path = data_paths[i]
    
    if data_path[0] == "-":
@@ -290,18 +290,21 @@ while i < len(data_paths)-1:
    imem = elf_imem
    if not PRINT_DEBUG_ON:
        print(f"Running {data_path}")
+
+   '''
    _mem_seg = MemorySegment(
       begin_addr = 0xE0000,
       count = (0xEFFFF - 0xE0000 + 1) >> 2,
       word_size = WORD_SIZE_BYTES
    )
+   '''
 
    data_mem = DataMem.init(Memory(elf_imem))
-
+   startup = True
    # generate system clocks until we reach a stopping condition
    # this is basically the run function from the last lab
    for t in itertools.count():
-      if t % 10000 == 0: print("cycle #: " + str(t))
+      # if t % 10000 == 0: print("cycle #: " + str(t))
       if maXkcycles != 0 and t >= maXkcycles:
           break
       # RESET the PC register

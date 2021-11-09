@@ -27,7 +27,7 @@ class CsrMemory():
         if cmd is None:
             raise Exception("non csr cmd")
         ret = None
-        print(cycle) 
+        #print(cycle) 
         self.regs[0xb00] = cycle # update mcycle csr
         ret = self.regs[csr]
         if cmd == enums['csr_cmd']['CSR.W']:
