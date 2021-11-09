@@ -91,7 +91,7 @@ class ALU:
 
     def _sltu(op1, op2):
         ALU._check_op1_op2_undef(op1, op2)
-        if abs(op1) < abs(op2): return 1
+        if as_twos_comp(op1) < as_twos_comp(op2): return 1
         else: return 0
 
     def _and(op1, op2):

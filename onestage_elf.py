@@ -242,15 +242,14 @@ def _handle_csr():
     csr = (instr.val & 0xfff00000) >> 20
     mnemonic = instr.get_mnemonic()
     print(mnemonic)
-    #value = instr.val & 0x000f8000
-    value = RegFile.get_rs1()
+    rs1 = (instr.val & 0x000f8000) >> 15
+    value = RegFile.reg_vals[rs1]
     cycle = t
     init_csr_val = csr_mem.clock(csr, mnemonic, value, cycle) 
     
-    instr._rd = instr.val & 0x00000f80
+    instr._rd = (instr.val & 0x00000f80) >> 7
     
-    csr_rf_wen = 0
-    if mnemonic == "CSSRW": csr_rf_wen = 1 
+    csr_rf_wen = 1 
     RegFile.clock(
         wa=instr.get_rd(), 
         wd=init_csr_val,

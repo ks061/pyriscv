@@ -245,7 +245,8 @@ class Instruction():
                            regNumToName(self._rs1) + "," +\
                            regNumToName(self._rs2)
                 if self._get_instr_name_equivalence(["ADDI", "ANDI", "ORI",
-                                                     "SLTI", "SLLI", "JALR",
+                                                     "SLTI", "SLTIU", "SLLI", 
+                                                     "JALR",
                                                      "SRAI", "SRLI"]):
                     if self._get_instr_name_equivalence(["JALR"]) and\
                        self._rd == 0x0 and self._rs1 == 0x1: 
