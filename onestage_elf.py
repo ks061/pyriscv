@@ -60,7 +60,7 @@ else:
    PRINT_FUNC_ON = True
    PRINT_INSTR_ON = True
    PRINT_LINUX_SYSCALL_ON = True
-   PRINT_REG_ON = False
+   PRINT_REG_ON = True
    PRINT_SYSCALL_ON = True
 
 # the PC register
@@ -302,6 +302,7 @@ while i < len(data_paths)-1:
    # this is basically the run function from the last lab
    for t in itertools.count():
       if t % 10000 == 0: print("cycle #: " + str(t))
+      #if t == 11012: break
       if maXkcycles != 0 and t >= maXkcycles:
           break
       # RESET the PC register
