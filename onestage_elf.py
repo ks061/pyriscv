@@ -54,7 +54,7 @@ elif ALL_PRINT_OFF:
    PRINT_SYSCALL_ON = False
 else:
    # customize
-   PRINT_DEBUG_ON = False
+   PRINT_DEBUG_ON = True
    PRINT_ECALL_ON = True
    PRINT_FINAL_REG_ON = True
    PRINT_FUNC_ON = True
