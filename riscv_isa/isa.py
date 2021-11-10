@@ -267,7 +267,7 @@ class Instruction():
                         return "j " + f"{self._imm:x}"
                     return str_out + regNumToName(self._rd) + "," +\
                            f"0x{self._imm:x}"
-                if self._get_instr_name_equivalence(["LB", "LH", "LW", "LBU", "LHU"]):
+                if self._get_instr_name_equivalence(["LB", "LH", "LW", "LBU", "LHU", "LWU"]):
                     return str_out + regNumToName(self._rd) + "," +\
                            f"0x{self._imm:x}" + f"({regNumToName(self._rs1)})"
                 if self._get_instr_name_equivalence(["SB", "SH", "SW"]):

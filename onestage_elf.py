@@ -13,6 +13,7 @@ from alu import ALU, AluFunVal
 from branch_cond_gen import BranchCondGen
 from branch_targ_gen import BranchTargGen
 from control_signals import ControlSignals
+from counters import Counters
 from datamem import DataMem
 from pydigital.elfloader import load_elf
 import itertools
@@ -35,6 +36,7 @@ from utype import UType
 ALL_PRINT_ON = False
 ALL_PRINT_OFF = False
 if ALL_PRINT_ON:
+   PRINT_COUNTERS_ON = True
    PRINT_DEBUG_ON = True
    PRINT_ECALL_ON = True
    PRINT_FINAL_REG_ON = True
@@ -44,6 +46,7 @@ if ALL_PRINT_ON:
    PRINT_REG_ON = True
    PRINT_SYSCALL_ON = True
 elif ALL_PRINT_OFF:
+   PRINT_COUNTERS_ON = False
    PRINT_DEBUG_ON = False
    PRINT_ECALL_ON = False
    PRINT_FINAL_REG_ON = False
@@ -54,6 +57,7 @@ elif ALL_PRINT_OFF:
    PRINT_SYSCALL_ON = False
 else:
    # customize
+   PRINT_COUNTERS_ON = True
    PRINT_DEBUG_ON = False
    PRINT_ECALL_ON = True
    PRINT_FINAL_REG_ON = False
@@ -202,6 +206,7 @@ def _handle_syscall():
            if PRINT_FINAL_REG_ON:
                print("Final register values")
                RegFile.display()
+           if PRINT_COUNTERS_ON: print(Counters.__str__())
            sys.exit(val>>1)
        else:
           try:
@@ -225,6 +230,7 @@ def _handle_linux_syscall():
    if ret_code == None: return False
    if ret_code & 0x1 != 0:
        if PRINT_LINUX_SYSCALL_ON: print(f"TEST #0x{ret_code>>1:x} FAIL")
+       if PRINT_COUNTERS_ON: print(Counters.__str__())
        sys.exit()
  
 def _print_func_header(addr, reset=False):
@@ -255,6 +261,46 @@ def _handle_csr():
         wd=init_csr_val,
         en=csr_rf_wen
     )
+
+def _inst_stats_update():
+    category = "inst_count" 
+    counter = None
+    if instr._get_instr_name_equivalence(["ADD", "ADDW", "ADDI", "ADDIW", "AND", "ANDI", "AUIPC", 
+                                          "LUI", "OR", "ORI", "SLL", "SLLW", "SLLI", "SLLIW", "SLT", 
+                                          "SLTI", "SLTIU", "SLTU", "SRA", "SRAW", "SRAI", "SRAIW",
+                                          "SRL", "SRLW", "SRLI", "SRLIW", "SUB", "SUBW", "XOR", 
+                                          "XORI"]): 
+        counter = "arithmetic"
+    elif instr._get_instr_name_equivalence(["CSRRS", "CSRRW", "CSRRC", 
+                                            "CSRRSI", "CSRRWI", "CSRRCI"]):
+        counter = "csr"
+    elif instr._get_instr_name_equivalence(["BLT","BGE","BNE","BLTU","BGEU","BEQ"]):
+        counter = "branch"
+    elif instr._get_instr_name_equivalence(["JAL"]):
+        counter = "jump"
+    elif instr._get_instr_name_equivalence(["SB", "SH", "SW"]):
+        counter = "store"
+    elif instr._get_instr_name_equivalence(["JALR"]):
+        counter = "jump_reg"
+    elif instr._get_instr_name_equivalence(["LB", "LH", "LW", "LBU", "LHU", "LWU"]):
+        counter = "load"
+    else:
+        counter = "misc"
+
+    Counters.increment("inst_count", counter)
+    Counters.add("inst_name", counter, instr.get_mnemonic())
+
+    # update bytes read or written in counter
+    amount = 0
+    if instr._get_instr_name_equivalence(["LB", "LH", "LW", "LBU", "LHU", "LWU",
+                                          "SB", "SH", "SW"]):
+        category_rw_sel = None
+        if instr.get_mnemonic()[0] == "L": category_rw_sel = "read"
+        if instr.get_mnemonic()[0] == "S": category_rw_sel = "write"
+        if instr.get_mnemonic()[1] == "B": amount = 1
+        if instr.get_mnemonic()[1] == "H": amount = 2
+        if instr.get_mnemonic()[1] == "W": amount = 4
+        Counters.increment("mem_" + category_rw_sel + "_bytes", amount=amount)  
 
 data_paths = []
 if len(sys.argv) < 2: data_paths.append('riscv_isa/programs/return')
@@ -303,6 +349,7 @@ while i < len(data_paths)-1:
    # generate system clocks until we reach a stopping condition
    # this is basically the run function from the last lab
    for t in itertools.count():
+      Counters.increment("mcycle")
       # if t % 10000 == 0: print("cycle #: " + str(t))
       if maXkcycles != 0 and t >= maXkcycles:
           break
@@ -337,8 +384,13 @@ while i < len(data_paths)-1:
             print("nop b/c not implemented in standard RISC-V ISA") 
          ControlSignals.set_pc_sel(0)
          continue
+      
       instr = Instruction(imem[pc_val], pc_val)
+      Counters.increment("inst_fetch_bytes", amount=4)
+      _inst_stats_update()
 
+
+ 
       _print_func_header(pc_val)
       if instr.is_csr():
          if PRINT_INSTR_ON: print(f"{t:20d}:", display())
@@ -391,21 +443,42 @@ while i < len(data_paths)-1:
     #   print(f"==={instr._mnemonic}={BranchCondGen.get_br_lt()}===")
 
       
-      if ((instr._get_instr_name_equivalence(["BEQ"]) and
-         BranchCondGen.get_br_eq()) or
-         (instr._get_instr_name_equivalence(["BNE"]) and
-         (not BranchCondGen.get_br_eq())) or
-         (instr._get_instr_name_equivalence(["BLT"]) and
-         BranchCondGen.get_br_lt()) or
-         (instr._get_instr_name_equivalence(["BGE"]) and
-         (not BranchCondGen.get_br_lt())) or
-         (instr._get_instr_name_equivalence(["BLTU"]) and
-         BranchCondGen.get_br_ltu()) or
-         (instr._get_instr_name_equivalence(["BGEU"]) and
-         (not BranchCondGen.get_br_ltu()))):  
-          ControlSignals.set_pc_sel(2)
-          full_display()
-          continue
+      if instr._get_instr_name_equivalence(["BEQ", "BNE", "BLT", "BGE",
+                                           "BLTU", "BGEU"]):
+
+         # variables for counter incrementing below
+         curr_pc = PC.out()
+         branch_pc = as_twos_comp(pc_sel_mux(2))
+         is_forward = None
+         if branch_pc > curr_pc: is_forward = True 
+         else: is_forward = False
+
+         if ((instr._get_instr_name_equivalence(["BEQ"]) and
+            BranchCondGen.get_br_eq()) or
+            (instr._get_instr_name_equivalence(["BNE"]) and
+            (not BranchCondGen.get_br_eq())) or
+            (instr._get_instr_name_equivalence(["BLT"]) and
+            BranchCondGen.get_br_lt()) or
+            (instr._get_instr_name_equivalence(["BGE"]) and
+            (not BranchCondGen.get_br_lt())) or
+            (instr._get_instr_name_equivalence(["BLTU"]) and
+            BranchCondGen.get_br_ltu()) or
+            (instr._get_instr_name_equivalence(["BGEU"]) and
+            (not BranchCondGen.get_br_ltu()))):  
+            ControlSignals.set_pc_sel(2)
+            full_display()
+
+            # update counter
+            if is_forward: Counters.increment("branch", "forward_taken")
+            else: Counters.increment("branch", "backward_taken")
+
+            continue
+         else: 
+            ControlSignals.set_pc_sel(0)
+            
+            # update counter (if not taken)
+            if is_forward: Counters.increment("branch", "forward_not_taken")
+            else: Counters.increment("branch", "backward_not_taken")
       elif instr._type == instrTypes.UJ:
           ControlSignals.set_pc_sel(3)
       elif instr._get_instr_name_equivalence(["JALR"]):
@@ -461,3 +534,4 @@ while i < len(data_paths)-1:
       RegFile.display()
    
    if PRINT_LINUX_SYSCALL_ON: print("TEST PASS")
+   if PRINT_COUNTERS_ON: print(Counters.__str__())

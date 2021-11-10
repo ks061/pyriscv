@@ -1,3 +1,5 @@
+import json
+
 class Counters:
     counter_dict = None
     
@@ -9,20 +11,20 @@ class Counters:
 
         return Counters.counter_dict[category][counter]
 
-    def increment(category, counter=None):
+    def increment(category, counter=None, amount=1):
         if Counters.counter_dict == None: Counters.__init__()
 
-        if counter == None: Counters.counter_dict[category] = Counters.counter_dict[category] + 1
-        else: Counters.counter_dict[category][counter] = Counters.counter_dict[category][counter] + 1
+        if counter == None: Counters.counter_dict[category] = Counters.counter_dict[category] + amount
+        else: Counters.counter_dict[category][counter] = Counters.counter_dict[category][counter] + amount
 
     def add(category, counter=None, entity=None):
         if Counters.counter_dict == None: Counters.__init__()
 
-        if counter == None: Counters.counter_dict[category].append(entity)
-        else: Counters.counter_dict[category][counter].append(entity)
+        if entity not in Counters.counter_dict[category][counter]:
+            Counters.counter_dict[category][counter].append(entity)
 
     def __str__():
-        return str(Counters.counter_dict)
+        return "------------------------------<      Counters      >------------------------------\n" + str(json.dumps(Counters.counter_dict, indent=4))
 
     def reset():
         Counters.counter_dict = {
