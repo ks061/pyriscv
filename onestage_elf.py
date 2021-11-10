@@ -55,13 +55,13 @@ elif ALL_PRINT_OFF:
 else:
    # customize
    PRINT_DEBUG_ON = False
-   PRINT_ECALL_ON = False
+   PRINT_ECALL_ON = True
    PRINT_FINAL_REG_ON = False
    PRINT_FUNC_ON = False
    PRINT_INSTR_ON = False
    PRINT_LINUX_SYSCALL_ON = True
    PRINT_REG_ON = False
-   PRINT_SYSCALL_ON = False
+   PRINT_SYSCALL_ON = True
 
 # the PC register
 PC = Register()
@@ -261,7 +261,6 @@ if len(sys.argv) < 2: data_paths.append('riscv_isa/programs/return')
 else: 
     for i in range(len(sys.argv)-1):
         data_paths.append(sys.argv[i+1])
-
 # init other vars for processor loop
 global startup
 global instr
