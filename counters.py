@@ -23,7 +23,41 @@ class Counters:
         if entity not in Counters.counter_dict[category][counter]:
             Counters.counter_dict[category][counter].append(entity)
 
+    def _calc_pcts():
+        # calc branch pcts
+        total_branch_forward = \
+            Counters.counter_dict["branch"]["forward_taken"] + \
+            Counters.counter_dict["branch"]["forward_not_taken"]
+        Counters.counter_dict["branch"]["forward_pct_taken"] = str(round(\
+            Counters.counter_dict["branch"]["forward_taken"] * 100 / \
+            total_branch_forward, 2)) + "%"
+        Counters.counter_dict["branch"]["forward_pct_not_taken"] = str(round(\
+            Counters.counter_dict["branch"]["forward_not_taken"] * 100 / \
+            total_branch_forward, 2)) + "%"
+        total_branch_backward = \
+            Counters.counter_dict["branch"]["backward_taken"] + \
+            Counters.counter_dict["branch"]["backward_not_taken"]
+        Counters.counter_dict["branch"]["backward_pct_taken"] = str(round(\
+            Counters.counter_dict["branch"]["backward_taken"] * 100 / \
+            total_branch_backward, 2)) + "%"
+        Counters.counter_dict["branch"]["backward_pct_not_taken"] = str(round(\
+            Counters.counter_dict["branch"]["backward_not_taken"] * 100 / \
+            total_branch_backward, 2)) + "%"
+
+        # calc arithmetic pcts
+        total_inst_count = 0
+        for key in Counters.counter_dict["inst_count"].keys():
+            total_inst_count += Counters.counter_dict["inst_count"][key]
+        
+        # save current inst_count keys before new ones are added
+        inst_count_keys = [key for key in Counters.counter_dict["inst_count"].keys()]
+        for key in inst_count_keys:
+            Counters.counter_dict["inst_count"][key + "_pct"] = str(round(\
+            Counters.counter_dict["inst_count"][key] * 100 / \
+            total_inst_count, 2)) + "%"
+
     def __str__():
+        Counters._calc_pcts()
         return "------------------------------<      Counters      >------------------------------\n" + str(json.dumps(Counters.counter_dict, indent=4))
 
     def reset():
